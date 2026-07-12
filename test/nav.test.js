@@ -121,4 +121,21 @@ describe('Nav', () => {
     expect(n.landing()).toBeNull(); // only a denylisted Link → no auto-open
     expect(n.active).toBeNull();
   });
+
+  it('sanitizes a channel description before it can reach {@html} (ISSUES I1)', async () => {
+    const arena = makeArena();
+    arena.getChannelMeta = async (slug) => ({
+      slug,
+      title: 'M',
+      description: '<img src=x onerror="alert(1)"><script>alert(2)</script><p>ok</p>',
+      counts: null,
+    });
+    const n = nav(arena, { title: 'S', channels: ['m'] });
+    await n.enter('m');
+    // about feeds both {@html} sinks (Panel + Cover) via App.svelte — the getter is
+    // the one canonical sanitized path, so remote HTML never reaches a sink raw.
+    expect(n.about).not.toMatch(/onerror/i);
+    expect(n.about).not.toMatch(/<script/i);
+    expect(n.about).toContain('ok');
+  });
 });

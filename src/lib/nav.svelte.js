@@ -9,6 +9,7 @@
  */
 import { arena as defaultArena } from './arena.js';
 import { isDenylisted } from './denylist.js';
+import { sanitizeHtml } from './sanitize.js';
 
 const DEPTH_CAP = 8;
 const sameSlug = (a, b) => a === b;
@@ -46,8 +47,15 @@ export class Nav {
   get title() {
     return this.atRoot ? this.config.title || '' : this.path[this.path.length - 1].title;
   }
+  /**
+   * Sanitized: an entered channel's `description` is remote Are.na HTML and
+   * `config.about` is deployer HTML — both render through `{@html}` (Panel + Cover),
+   * so canonicalize every about-HTML render onto the one sanitized path here rather
+   * than trusting each sink to remember (ISSUES I1).
+   */
   get about() {
-    return this.atRoot ? this.config.about || '' : this.path[this.path.length - 1].description || '';
+    const raw = this.atRoot ? this.config.about || '' : this.path[this.path.length - 1].description || '';
+    return sanitizeHtml(raw);
   }
 
   /** Resolve the config sections as channel-kind entries; degrade per section. */
