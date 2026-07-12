@@ -101,6 +101,18 @@ describe('Nav', () => {
     expect(n.hasMore).toBe(false);
   });
 
+  it('surfaces a rate-limited error distinctly from unreachable', async () => {
+    const arena = makeArena();
+    arena.getChannelMeta = async () => {
+      const e = new Error('rl');
+      e.rateLimited = true;
+      throw e;
+    };
+    const n = nav(arena, { title: 'S', channels: ['a'] });
+    await n.enter('a');
+    expect(n.error).toMatch(/slow down/i);
+  });
+
   it('landing prefers an Image; a denylisted-links-only channel shows the index', async () => {
     const n = nav(makeArena());
     await n.enter('a');

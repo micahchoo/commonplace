@@ -43,4 +43,15 @@ describe('App skeleton', () => {
     // the nested Channel block renders as a drill node with its count
     expect(target.textContent).toContain('>ch 33');
   });
+
+  it('shows the configure-me empty state when no channels resolve', async () => {
+    global.fetch = vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) }));
+    const target = document.createElement('div');
+    document.body.appendChild(target);
+    app = mount(App, { target });
+    await vi.waitFor(() => {
+      expect(target.querySelector('.at-empty')).toBeTruthy();
+    });
+    expect(target.textContent).toContain('Configure me');
+  });
 });

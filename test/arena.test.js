@@ -60,9 +60,21 @@ describe('arena adapter', () => {
     expect(channels).toHaveLength(2);
   });
 
-  it('flags a 429 as rate-limited', async () => {
+  it('retries a persistent 429 then throws rateLimited after maxRetries', async () => {
     const fetchImpl = vi.fn(async () => ({ ok: false, status: 429, json: async () => ({}) }));
-    const arena = createArena({ fetchImpl });
+    const arena = createArena({ fetchImpl, sleep: () => Promise.resolve(), maxRetries: 2 });
     await expect(arena.getContentsPage('x')).rejects.toMatchObject({ code: 429, rateLimited: true });
+    expect(fetchImpl).toHaveBeenCalledTimes(3); // initial + 2 retries
+  });
+
+  it('recovers when a 429 is followed by a 200', async () => {
+    let n = 0;
+    const fetchImpl = vi.fn(async () =>
+      n++ === 0 ? { ok: false, status: 429, json: async () => ({}) } : ok(contentsFixture),
+    );
+    const arena = createArena({ fetchImpl, sleep: () => Promise.resolve() });
+    const { blocks } = await arena.getContentsPage('x');
+    expect(blocks).toHaveLength(6);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });

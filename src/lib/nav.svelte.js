@@ -79,8 +79,10 @@ export class Nav {
       this.error = null;
       this.loading = false;
       return { slug, title: title || meta.title, description: meta.description };
-    } catch {
-      this.error = `Channel unreachable: ${slug}`;
+    } catch (e) {
+      this.error = e?.rateLimited
+        ? 'Rate limited — please slow down a moment.'
+        : `Channel unreachable: ${slug}`;
       this.blocks = [];
       this.hasMore = false;
       this.loading = false;

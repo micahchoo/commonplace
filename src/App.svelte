@@ -9,6 +9,7 @@
   import { decodeHash, encodePath, navigate } from './lib/router.js';
   import Panel from './components/Panel.svelte';
   import Stage from './components/Stage.svelte';
+  import EmptyState from './components/EmptyState.svelte';
 
   const nav = new Nav();
   let booted = $state(false);
@@ -55,11 +56,9 @@
 <Stage block={nav.active} />
 
 {#if !booted}
-  <div class="at-panel"><p>Loading…</p></div>
+  <div class="at-panel at-skeleton"><p>Loading…</p></div>
 {:else if !nav.config.channels.length}
-  <div class="at-panel">
-    <p>Configure me — add a <code>config.json</code> or open with <code>?channel=slug</code>.</p>
-  </div>
+  <EmptyState />
 {:else}
   <Panel
     {nav}
