@@ -1,12 +1,22 @@
 <script>
+  import Blurhash from '../Blurhash.svelte';
   let { block } = $props();
+  let loaded = $state(false);
 </script>
 
+{#if block.image?.blurhash}
+  <!-- Instant blurred backdrop while the full asset loads; also fills the letterbox
+       margins behind the contained image (ISSUES D2). -->
+  <Blurhash hash={block.image.blurhash} ratio={block.image?.aspectRatio} />
+{/if}
 <img
   class="at-image"
+  class:loaded
   src={block.image?.src}
   srcset={block.image?.srcset}
   alt={block.image?.alt || block.title}
+  onload={() => (loaded = true)}
+  onerror={() => (loaded = true)}
 />
 
 <style>
@@ -22,6 +32,11 @@
     width: auto;
     height: auto;
     object-fit: contain;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .at-image.loaded {
+    opacity: 1; /* fade in over the blurhash backdrop once the asset arrives */
   }
   /* On mobile, top-align under the pinned bar (content-layer is already offset by
      --at-bar-h) instead of floating centered in the tall portrait space. */

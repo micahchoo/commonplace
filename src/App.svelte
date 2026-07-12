@@ -34,6 +34,8 @@
             slug: pathSlugs().at(-1) || '',
             thumb: b.image.thumb || b.image.src,
             title: b.title,
+            blurhash: b.image.blurhash,
+            ratio: b.image.aspectRatio,
           })),
   );
   const gridAvailable = $derived(!nav.atRoot && channelThumbs.length > 0);

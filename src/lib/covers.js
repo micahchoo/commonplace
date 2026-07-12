@@ -6,7 +6,7 @@
  *
  * @param {{getContentsPage:(slug:string,page?:number)=>Promise<{blocks:any[]}>}} arena
  * @param {string[]} slugs
- * @returns {Promise<Array<{id:number, slug:string, thumb:string, title:string}>>}
+ * @returns {Promise<Array<{id:number, slug:string, thumb:string, title:string, blurhash?:string, ratio?:number}>>}
  */
 export async function collectThumbnails(arena, slugs = []) {
   const settled = await Promise.allSettled(slugs.map((slug) => arena.getContentsPage(slug, 1)));
@@ -16,7 +16,9 @@ export async function collectThumbnails(arena, slugs = []) {
     const slug = slugs[i];
     for (const b of r.value.blocks || []) {
       const thumb = b.image?.thumb || b.image?.src;
-      if (thumb) thumbs.push({ id: b.id, slug, thumb, title: b.title });
+      if (thumb) {
+        thumbs.push({ id: b.id, slug, thumb, title: b.title, blurhash: b.image?.blurhash, ratio: b.image?.aspectRatio });
+      }
     }
   });
   return thumbs;
