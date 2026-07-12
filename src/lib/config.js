@@ -26,6 +26,8 @@ export async function resolveConfig(search = '', fetchJson = defaultFetchJson) {
   const fromParams = params.get('channels') || params.get('channel');
   if (fromParams) {
     const channels = toSlugs(fromParams.split(','));
+    // Params mode is channels-only by design: title/about/logo/theme are config.json's
+    // job, so a params-only load uses the default look (documented in README). ISSUES I7.
     if (channels.length) return { channels, source: 'params' };
   }
 

@@ -53,7 +53,10 @@ Dropped next to `index.html`:
 
 **Zero-config mode:** skip `config.json` entirely and open the built app with a URL
 parameter — `?channel=reading-room` or `?channels=a,b,c`. Handy for a hosted build
-anyone can point at their own channel.
+anyone can point at their own channel. This mode sets **only the channels** — `title`,
+`about`, `logo`, and `theme` come from `config.json`, so a params-only load shows the
+default (classic Binder) look with the channels' own titles. For branding or a custom
+theme, use `config.json`.
 
 Only **public** channels work (channels marked *public* or *closed* — not *private*).
 There are no auth tokens: a static deploy can't hold a secret.
