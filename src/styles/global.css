@@ -34,6 +34,32 @@ body {
   color: var(--an-text);
 }
 
+/* --- The signature draggable box (shared chrome for the panel + boot states) --- */
+
+.at-panel {
+  position: fixed;
+  left: 10px;
+  top: 40%;
+  z-index: 10;
+  padding: 13px 15px;
+  background: var(--an-panel-bg);
+  border: solid var(--an-border);
+  box-shadow: var(--an-shadow-1) 3px 3px 0, 6px 6px 0 var(--an-shadow-2);
+  font: 15px/20px var(--an-font);
+  letter-spacing: -0.3px;
+  color: var(--an-text);
+  max-width: 42ch;
+}
+
+@media (max-width: 768px) {
+  .at-panel {
+    left: 2px;
+    right: 2px;
+    top: 2px;
+    max-width: none;
+  }
+}
+
 /* --- {@html} content: styled globally because scoped styles don't reach it --- */
 
 .at-text {
