@@ -10,8 +10,8 @@
 import { arena as defaultArena } from './arena.js';
 import { isDenylisted } from './denylist.js';
 import { sanitizeHtml } from './sanitize.js';
+import { DEPTH_CAP } from './router.js';
 
-const DEPTH_CAP = 8;
 const sameSlug = (a, b) => a === b;
 
 export class Nav {

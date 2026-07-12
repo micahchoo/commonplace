@@ -15,3 +15,9 @@ Health & surplus work is tracked as the wayfinder map **AreNotebook: health & su
   Are.na-sourced string with `{@html}` without it. Embeds are the sole exception: their isolation
   is the sandboxed null-origin iframe, not sanitization (sanitizing would strip the markup they
   need). See `ISSUES.md#I1`.
+
+## Code invariants
+
+- **`DEPTH_CAP` is defined once, in `src/lib/router.js`, and imported everywhere it's needed
+  (nav, router).** Never redeclare it — the drill-depth cap and the hash-encoding cap must not
+  drift. See `ISSUES.md#I8`.
