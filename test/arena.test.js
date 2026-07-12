@@ -60,6 +60,14 @@ describe('arena adapter', () => {
     expect(channels).toHaveLength(2);
   });
 
+  it('caches connections — re-drilling the same channel does not refetch', async () => {
+    const fetchImpl = mockFetch({ '/connections': connectionsFixture });
+    const arena = createArena({ fetchImpl });
+    await arena.getConnections('arena-influences');
+    await arena.getConnections('arena-influences');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
   it('retries a persistent 429 then throws rateLimited after maxRetries', async () => {
     const fetchImpl = vi.fn(async () => ({ ok: false, status: 429, json: async () => ({}) }));
     const arena = createArena({ fetchImpl, sleep: () => Promise.resolve(), maxRetries: 2 });

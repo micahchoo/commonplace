@@ -25,6 +25,7 @@ export function createArena({
 } = {}) {
   const metaCache = new SvelteMap(); // slug -> meta
   const pageCache = new SvelteMap(); // `${slug}:${page}` -> { blocks, hasMore, nextPage }
+  const connCache = new SvelteMap(); // slug -> { channels } — sideways jumps, cached in-session
   const enc = encodeURIComponent;
 
   async function fetchJson(url) {
@@ -77,14 +78,17 @@ export function createArena({
   }
 
   async function getConnections(slug) {
+    if (connCache.has(slug)) return connCache.get(slug);
     const j = await fetchJson(`${base}/channels/${enc(slug)}/connections`);
     const channels = (j.data || [])
       .filter((c) => c && c.slug)
       .map((c) => ({ slug: c.slug, title: c.title || c.slug }));
-    return { channels };
+    const result = { channels };
+    connCache.set(slug, result);
+    return result;
   }
 
-  return { getChannelMeta, getContentsPage, getConnections, metaCache, pageCache };
+  return { getChannelMeta, getContentsPage, getConnections, metaCache, pageCache, connCache };
 }
 
 /** Default app-wide instance (real fetch). */
