@@ -6,8 +6,9 @@
   import NavList from './NavList.svelte';
   import Breadcrumb from './Breadcrumb.svelte';
   import ConnectionsStrip from './ConnectionsStrip.svelte';
+  import ChannelOpener from './ChannelOpener.svelte';
 
-  let { nav, gridMode = false, gridAvailable = false, ongrid, onselect, onnavigate, onjump, onloadmore } = $props();
+  let { nav, gridMode = false, gridAvailable = false, ongrid, onselect, onnavigate, onjump, onloadmore, onopen } = $props();
 
   // Collapsed by default on mobile; open on desktop.
   let open = $state(typeof window === 'undefined' || !window.matchMedia?.('(max-width: 768px)').matches);
@@ -68,6 +69,8 @@
       {/if}
 
       <ConnectionsStrip connections={nav.connections} {onjump} />
+
+      <ChannelOpener {onopen} />
     </div>
   {/if}
 </div>

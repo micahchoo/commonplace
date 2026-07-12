@@ -104,6 +104,10 @@ Drop a `config.json` next to `index.html` (it's fetched at runtime, so no rebuil
 their own channel. This sets **only the channels**; `title`, `about`, `logo`, and `theme` come
 from `config.json`, so a params-only load uses the default look with the channels' own titles.
 
+**Open a channel on the fly:** paste any Are.na channel link (or bare slug) into the menu's
+*"open an are.na channel…"* box to browse it immediately — no config edit, no reload. It's added
+for the session; list it in `config.json` to keep it.
+
 <details>
 <summary>Migrating from Binder</summary>
 

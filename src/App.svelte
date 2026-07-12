@@ -46,6 +46,17 @@
     }
   }
 
+  // Open an Are.na channel pasted at runtime: add it as a session section (so it also
+  // shows at root) and navigate into it. Warm its thumbnails for the cover too.
+  function openChannel(slug) {
+    if (!slug) return;
+    if (!nav.config.channels.includes(slug)) {
+      nav.config = { ...nav.config, channels: [...nav.config.channels, slug] };
+      collectThumbnails(arena, nav.config.channels).then((t) => (coverThumbs = t));
+    }
+    navigate([slug]);
+  }
+
   // The sole place nav mutates from the URL: reconcile nav to the hash.
   async function sync() {
     const { slugs, blockId } = decodeHash(window.location.hash);
@@ -107,7 +118,7 @@
 {#if !booted}
   <div class="at-panel at-skeleton"><p>Loading…</p></div>
 {:else if !nav.config.channels.length}
-  <EmptyState />
+  <EmptyState onopen={openChannel} />
 {:else}
   <Panel
     {nav}
@@ -118,5 +129,6 @@
     onnavigate={(depth) => navigate(pathSlugs().slice(0, depth))}
     onjump={(slug) => navigate([slug])}
     onloadmore={() => nav.loadMore()}
+    onopen={openChannel}
   />
 {/if}
