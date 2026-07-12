@@ -1,9 +1,14 @@
 <script>
-  // Plain numbered index (Wave 1). Task 17 adds link! glyphs / polish.
+  // Numbered index with kind tags, drill counts, and a link! pre-warning.
+  import { isDenylisted } from '../lib/denylist.js';
   let { blocks = [], activeId = null, onselect } = $props();
 
   const num = (i) => String(i + 1).padStart(2, '0');
-  const tag = (b) => (b.kind === 'channel' ? `>ch ${b.count ?? ''}`.trim() : `[${b.kind}]`);
+  const tag = (b) => {
+    if (b.kind === 'channel') return `>ch ${b.count ?? ''}`.trim();
+    if (b.kind === 'link' && isDenylisted(b.link?.url)) return 'link!';
+    return `[${b.kind}]`;
+  };
 </script>
 
 <ul class="at-navlist">

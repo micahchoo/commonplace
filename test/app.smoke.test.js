@@ -38,5 +38,9 @@ describe('App skeleton', () => {
     expect(target.querySelector('.at-image')).toBeTruthy(); // landing = first Image
     expect(document.title).toBe('Test Site');
     expect(target.textContent).toContain('Sitterwerk'); // first block label in the index
+    // auto-entered the first section → breadcrumb shows it (not the root sections list)
+    expect(target.querySelector('.at-crumbs')?.textContent).toContain('Arena Influences');
+    // the nested Channel block renders as a drill node with its count
+    expect(target.textContent).toContain('>ch 33');
   });
 });
