@@ -1,237 +1,274 @@
-# Binder × Are.na — wireframe-storyboard (v1)
+# The reader's journey through Commonplace
 
-> Resolves **"Sketch a wireframe-storyboard of the Binder × Are.na experience"** (`binder-e3d6`).
-> A rough, low-fidelity artifact to *react to*, not a spec. Grounded in the real UI (`index.html`, `style.css`, `js/google-docs-site.1.0.js`) and the verified API facts (`docs/research/arena-public-api.md`).
+This is a stage-by-stage walkthrough of what a visitor experiences — from an empty
+page to a block filling the screen — and which file owns each moment. Read it to map
+the UX onto the code before you touch either. Commonplace is a static Svelte 5 app
+rebuilt from [Binder](https://github.com/clementvalla/binder); it browses public
+Are.na channels live in the browser, with no build-time content. Every claim below is
+grounded in `src/` as it stands.
 
-## The direction
+## The two signatures it inherits from Binder
 
-Three directions were explored and judged; this storyboard builds on the winner, **"Same Box, Deeper Stack"** — the most faithful and feasible skeleton — grafted with the best of the other two:
+Binder had two load-bearing moves, and Commonplace keeps both:
 
-- **Spine:** keep Binder's *two* load-bearing signatures untouched — the floating, **draggable** monospace box (blue border, double shadow: yellow `#fefb00` +3px over red `#ff0000` +6px) and the **full-viewport background**. One `GET /channels/:slug` resolves everything; a **per-class renderer** swaps into the single background slot; nested channels **drill in place** with a breadcrumb.
-- **Grafted from "Board & Card":** a **connections band** (channel→channel cross-links) and an **optional Board** view for large channels.
-- **Grafted from "Bound Index":** the calm **numbered index** with kind-tags, an explicit **loading/resilience** state, and a **`link!`** pre-warning glyph.
+- **A floating, draggable box** — a monospace panel with a blue border and a stacked
+  double shadow (yellow `#fefb00` at +3px over red `#ff0000` at +6px). It is the only
+  chrome; everything you can do, you do from it.
+- **A full-viewport background** — one content slot behind the box. Selecting a block
+  swaps a per-kind renderer into that slot; the box floats over it.
 
-One correctness note baked in: the active entry turns **BLACK** — that's the live `.active` rule in the JS. (The `.current_page_item{color:red}` rule exists in CSS but is never wired; red would be a deliberate new choice.)
+Both are now theme tokens, not hardcoded colors. The defaults live in
+[`src/styles/global.css`](../../src/styles/global.css) `:root` and a self-hoster can
+override any of them via `config.theme` ([`src/lib/theme.js`](../../src/lib/theme.js)):
 
-## Legend (same glyphs every frame)
+```css
+--an-panel-bg: #eee;
+--an-border:   blue;
+--an-shadow-1: #fefb00; /* offset +3px */
+--an-shadow-2: #ff0000; /* offset +6px */
+--an-font:     monospace;
+--an-text:     #717171;
+--an-accent:   #000;    /* the active row and other highlights */
+```
+
+The active nav row highlights to `--an-accent` (black by default) — Binder's original
+`.active` behavior, now driven by a variable.
+
+## Boot → auto-enter the first channel → land on a block
+
+[`src/App.svelte`](../../src/App.svelte)'s `onMount` runs the whole boot:
+
+1. Resolve `config` from the URL query, apply the theme, set `document.title`.
+2. `nav.loadRoot()` — resolve each configured channel's metadata into a root list of
+   channel-kind entries (a failed one is kept but flagged `dead`).
+3. Warm a thumbnail contact sheet for the home cover in the background.
+4. **Auto-enter the first section.** If the URL hash is empty and the first section
+   isn't dead, `history.replaceState` rewrites the hash to that channel's slug — so a
+   first-time visitor lands *inside* a channel, faithful to Binder's "load the first
+   one," and state and URL never disagree.
+5. `sync()` reconciles nav to the hash, then a `hashchange` listener drives every
+   navigation after this. The hash is the single source of truth.
+
+Landing on a channel does not just open block #1. `nav.landing()`
+([`src/lib/nav.svelte.js`](../../src/lib/nav.svelte.js)) opens the first block that
+will *actually paint*, in this priority order:
 
 ```
-.--------.  box with BLUE border = the draggable menu     ::move:: = cursor:move drag handle
- '--------'
-  '--------'   the two stacked offset edges = signature shadow (yellow +3px over red +6px)
-[txt][lnk][img][vid][pdf] = block class tag, right-aligned      >ch N = nested channel (N items)
-[*] = active row -> turns BLACK (live .active, not red)         #backgrnd = full-viewport slot
-link!  = a Link whose site may refuse framing (pre-warning)     <-> = connections band
+Image → Embed (non-empty) → Attachment → known-framable Link
 ```
 
----
-
-### Frame 1 — Landing: loading → resolved
-
-```
-(a) LOADING                                   (b) RESOLVED
-+==============================+   +================================+
-|                 ## LOGO ##   |   |                  ## LOGO ##    |
-|   .----------------------.   |   |          pull-quotes & links, |  .about =
-|   | ·············::move::|   |   |          an ongoing collection|  description
-|   |......................|   |   |   .----------------------.    |
-|   | ···············      |   |   |   | Reading Room ::move::|    |  header =
-|   | ·········            |   |   |   |......................|    |  channel.title
-|   | ················     |   |   |   | 01 Intro note   [txt]|    |
-|   '----------------------'   |   |   | 02 NASA SP-2009 [pdf]|    |  nav = blocks,
-|    '----------------------'  |   |   | 03 cempontra    link!|    |  numbered, by
-|     '----------------------' |   |   | 04 Sunset bay   [img]|    |  generated_title
-|                              |   |   | 05 Glenn Gould  [vid]|    |
-|   GET /channels/reading-room |   |   | 06 Field Notes >ch 12|    |
-|   ?per=100  (one fetch/load) |   |   '----------------------'    |
-|   cache in-session; on fail: |   |    '----------------------'   |
-|   "channel unreachable"      |   |     '----------------------'  |
-|   (404 / private / offline)  |   |   [ first block auto-fills bg]|
-+==============================+   +================================+
-```
-*One request resolves the whole site: `title`→box header, `metadata.description`→`.about`, `blocks`→a numbered index. A skeleton holds the box while it loads; failure states are named, not blank. First block auto-loads (faithful to today's "load the first one").*
-**Fork A (decide in the nav-model ticket):** fold the 300px corner logo + `.about` *into* the panel header (one calm floating object) — or keep the corner wordmark. Middle option: a small monochrome mark in the header.
-
----
-
-### Frame 2 — Reading the index (block variety + nesting + connections, in one box)
+If nothing paints — an empty channel, drill-only, or only denylisted links — it opens
+nothing and shows the numbered index over a calm empty stage. It never auto-opens a
+fallback card.
 
 ```
-        .---------------------------------.
-        | Reading Room            ::move::|
-        |.................................|
-        | 01 Intro note ..............[txt]|
-        | 02 NASA SP-2009-566 ........[pdf]|
-        | 03 cempontra ..........link![lnk]|
-        | 04 Sunset over the bay .....[img]|
-        | 05 Glenn Gould - Aria ......[vid]|   <- 05 active = BLACK
-        | 06 Field Notes ...........>ch 12|
-        |.................................|
-        | <-> connected: >tools >src >zine|   connections band
-        '---------------------------------'   (/channels/:slug/connections)
-         '---------------------------------'
-          '---------------------------------'
+(a) LOADING                              (b) LANDED (inside first channel)
++============================+   +==================================+
+|  .------------------.      |   |                                  |
+|  | Loading…         |      |   |   .--------------------------.   |
+|  '------------------'      |   |   | Reading Room       – grid |   |
+|   '------------------'     |   |   |..........................|   |
+|    '------------------'    |   |   | 01 Intro note      [text]|   |
+|                            |   |   | 02 NASA SP-2009-566 [att…]|  |
+|  loadRoot(): meta per      |   |   | 03 Sunset bay     [image]|   |  <- first
+|  channel; dead ones flag   |   |   | 04 Glenn Gould    [embed]|   |     paintable
+|  but still list            |   |   | 05 Field Notes     >ch 12|   |     block fills
++============================+   |   '--------------------------'   |     the stage
+                                 |    '--------------------------'  |
+                                 |     '--------------------------' |
+                                 +==================================+
 ```
-*This one frame carries the whole "richer organizing layer": **block variety** (kind tags), **nesting** (`>ch 12`), and **connections** (the `<->` band of sibling channels the block-tree would otherwise flatten away). Still `cursor:move` — draggable, just quieter.*
 
----
+The skeleton is a real `.at-panel .at-skeleton` box holding the frame while `booted`
+is false — failure is named ("Channel unreachable: …", or a rate-limit message), never
+a blank void.
 
-### Frame 3 — Select a Link (framing-safe) → live iframe
+## The home cover
 
-```
-+================================================================+
-|   .--------------------------.                                 |
-|   | < Reading Room / 03 ::move|   +--------------------------+  |
-|   |..........................|    |  cempontraoryartdaily    |  |
-|   | 03 cempontra        [*]  |    |   .tumblr.com            |  |
-|   | ...                      |    |  [ live site fills the   |  |
-|   '--------------------------'    |    #backgrnd iframe ]    |  |
-|    '--------------------------'   |                          |  |
-|     '--------------------------'  +--------------------------+  |
-|   iframe src = source.url · active row BLACK · breadcrumb names |
-+================================================================+
-```
-*The classic Binder move, unchanged: `source.url` pours into the full-viewport iframe behind the box.*
+At the root with no block open, the stage shows a `Cover`
+([`src/components/Cover.svelte`](../../src/components/Cover.svelte)): a full-viewport
+contact-sheet grid of the channels' block thumbnails
+([`ThumbGrid`](../../src/components/ThumbGrid.svelte)), or, when nothing carries an
+image, a typographic cover — title, `about`, and "Select a channel to begin." Because
+boot auto-enters the first channel, a visitor usually meets the cover only by walking
+the breadcrumb back to root.
 
----
+## The panel
 
-### Frame 4 — Select a Media block → embedly player (framing-safe)
+[`src/components/Panel.svelte`](../../src/components/Panel.svelte) is the draggable box.
+Its header is pinned; only the body scrolls, so a long channel never runs off the
+bottom of the viewport.
 
-```
-+================================================================+
-|   .--------------------------.    +------------------------+   |
-|   | Reading Room     ::move::|    |  Glenn Gould - Aria    |   |
-|   |..........................|    |  YouTube (via embedly) |   |
-|   | 05 Glenn Gould     [*]   |    |  [======player======]  |   |
-|   | ...                      |    |   |>  0:00 / 4:12       |   |
-|   '--------------------------'    +------------------------+   |
-|    '--------------------------'   inject embed.html            |
-|     '--------------------------'  (embedly iframe = safe;      |
-|                                    sidesteps YouTube X-Frame)  |
-+================================================================+
-```
-*A Media block injects its `embed.html`. Embedly wraps YouTube/Vimeo/Bandcamp, so they play here without tripping their own framing rules — no fallback needed.*
+**Header.** A dotted CSS grip (drag affordance), the logo (only at root, if
+`config.logo`), the channel/site title, then two controls pushed to the right edge:
 
----
+| Control | When it shows | What it does |
+|---|---|---|
+| `grid` | only when `gridAvailable` (in a channel with ≥1 image thumb) | toggles the board view |
+| `–` / `+` | always | minimize / maximize the body |
 
-### Frame 5 — Image and Text: native renders (no iframe)
+The body is collapsed by default on mobile (`≤768px`) and open on desktop.
 
-```
-(a) IMAGE -> <img>                    (b) TEXT -> content_html inline
-+==============================+   +==============================+
-|   .------------------.       |   |   .------------------.  " Intro note        |
-|   | 04 Sunset  [*]   |       |   |   | 01 Intro   [*]   |    ---------          |
-|   '------------------'       |   |   '------------------'  A collection of pull |
-|    '------------------'  .###.|   |    '------------------' -quotes and links,   |
-|     '------------------' # img|   |                         set as running text.|
-|      image.display.url  '###'|   |                        (content_html)  "     |
-+==============================+   +==============================+
-```
-*The non-framed kinds get native treatments in the same slot: an Image paints as `<img>` from `image.display.url`; a Text block renders `content_html` inline. No iframe involved.*
+**Body**, in order: the breadcrumb, the channel's `about` HTML (sanitized), any error,
+the numbered nav list, a `load more…` button when more pages exist, and the
+connections strip.
 
----
+**The numbered index** ([`NavList`](../../src/components/NavList.svelte)) is the heart
+of the box. Each row is `NN  title  tag`, zero-padded. The tag encodes what the row is:
 
-### Frame 6 — Attachment / PDF
+| Tag | Meaning |
+|---|---|
+| `[image]` `[text]` `[embed]` `[attachment]` `[link]` | the block kind — how it will render |
+| `>ch N` | a nested channel with N items — drilling in place |
+| `link!` | a Link whose host is on the denylist — it will show a card, not a live frame (a pre-warning) |
 
-```
-+================================================================+
-|   .--------------------------.    +------------------------+   |
-|   | Reading Room     ::move::|    | [] NASA-SP-2009-566.pdf|   |
-|   |..........................|    |------------------------|   |
-|   | 02 NASA SP-2009-566 [*]  |    |  page 1 of 148      v  |   |
-|   | ...                      |    |  [ PDF renders in the  |   |
-|   '--------------------------'    |    iframe / viewer ]   |   |
-|    '--------------------------'   +------------------------+   |
-|   attachment.url (application/pdf) -> iframe/viewer            |
-+================================================================+
-```
-*An Attachment loads `attachment.url` in the same background slot — native browser PDF view.*
+Titles come from `deriveTitle` ([`src/lib/model.js`](../../src/lib/model.js)):
+`title` → a Text block's first content line → a description's first line → `Untitled`.
+There is no Are.na "generated title" in V3, so `Untitled` is a real possibility the
+numbered index and kind tag are meant to soften.
 
----
+**Dragging** ([`src/lib/drag.js`](../../src/lib/drag.js)) uses native Pointer Events
+(replacing Binder's jQuery-UI + touch-punch). The header is the handle; clicks on
+buttons and links are not drags; drag is disabled at `≤768px`.
 
-### Frame 7 — Non-iframeable Link → preview-card fallback
+## The stage: how each block kind paints
 
-```
-+================================================================+
-|   .--------------------------.     [ background stays on the   |
-|   | Reading Room     ::move::|       last content — this site  |
-|   |..........................|       refused to be framed ]    |
-|   | 07 NYT feature  link![*] |                                 |
-|   '--------------------------'                                 |
-|    '--------------------------'                                |
-|     '--------------------------'                               |
-|   .----------------------------.                               |
-|   | [img] NYT feature          |  <- the ONE new element:      |
-|   | nytimes.com : won't frame  |     a small preview CARD      |
-|   | [ thumbnail ]   ( open ^ ) |     (image.thumb + provider   |
-|   '----------------------------'      + "open in new tab")     |
-+================================================================+
-```
-*The `link!` glyph pre-warned this in the index, so the card is a quiet, expected affordance — not a blank-frame surprise.*
-**Carried risk:** browsers can't cleanly detect an X-Frame refusal (no error event). The real trigger is a **provider denylist** (NYT/Twitter/Facebook/GitHub) plus an onload-timeout heuristic. This is the substance of the embedding ticket (`binder-ab29`).
+Selecting a row sets the hash to that block id, `sync()` opens it as `nav.active`, and
+[`Stage.svelte`](../../src/components/Stage.svelte) routes it to a renderer. Each kind
+gets a native treatment in the one full-viewport slot; there is no single universal
+iframe.
 
----
-
-### Frame 8 — Drill into a nested channel + optional Board toggle
-
-```
-   click "06 Field Notes >ch 12"  ->  same box, child contents
-        .-------------------------------.        [grid] toggle -> BOARD (opt-in)
-        | < Reading Room / Field Notes  |     +-----------------------------+
-        |...............................|     | Field Notes        [list|■] |
-        | 01 Marginalia .........[txt]  |     |  +----+ +----+ +----+ +----+|
-        | 02 Sketch 04 ..........[img]  |     |  |img | |img | |vid | |txt ||
-        | 03 Sub-channel .......>ch 3   |     |  +----+ +----+ +----+ +----+|
-        | ...                           |     |  +----+ +----+ +----+       |
-        | <-> connected: >archive >refs |     |  |pdf | |img | |img |       |
-        '-------------------------------'     |  +----+ +----+ +----+       |
-         '-------------------------------'    +-----------------------------+
-          '-------------------------------'    grid of image.thumb, for
-   ( "<" or a crumb pops back out )            image-heavy / 300+ block channels
-```
-*Selecting a `>ch` node swaps the list for that channel's own blocks, with a growing breadcrumb; `<` pops one level. Depth is arbitrary — the channel graph decides.*
-**Fork B (decide in the nav-model ticket):** offer the **Board** (spatial grid of `image.thumb`) as an *opt-in* view for large/image-heavy channels — the answer to "the small box overflows on deep/wide channels" — while keeping the iframe-as-default signature intact.
-**Carried risk:** deep drilling = N more fetches; needs a spider-depth cap and a cycle guard (channels can connect back to themselves).
-
----
-
-### Frame 9 — Mobile (three states)
-
-```
-  collapsed:                expanded [=]:            viewing:
- +------------------+      +------------------+      +------------------+
- | [=]     LOGO     |      | [x] Field Notes  |      | [=] < Field Notes|
- +------------------+      |..................|      +------------------+
- |                  |      | 01 Marginalia txt|      |                  |
- |   full-bleed     |      | 02 Sketch04   img|      |  block fills the |
- |   content        |      | 03 Sub-ch    >3  |      |  screen behind   |
- |  (iframe/embed/  |      | <-> >archive     |      |  the collapsed   |
- |   img/text)      |      +------------------+      |  bar             |
- +------------------+      | content behind   |      +------------------+
-```
-*Per the existing 768px CSS: the box pins full-width at top, the hamburger toggles the index, `.about` hides, drag disables. Breadcrumb + back share the top bar. Drill, connections, and the fallback card all still apply.*
-
----
-
-## Two forks to react to
-
-1. **Logo/about placement** (Frame 1) — fold the 300px corner logo + `.about` into the panel (one calm object) vs keep the corner wordmark vs a small monochrome header mark.
-2. **Board view** (Frame 8) — add an opt-in spatial grid for large channels, or stay list-only.
-
-Both are nav-model decisions and belong to *Design the channel-to-navigation organizing model* (`binder-7ac4`).
-
-## Risks this storyboard carries forward (not solved here)
-
-- **Framing detection is heuristic** — no clean browser signal for X-Frame refusal → denylist + onload-timeout. (→ `binder-ab29`)
-- **Injected `embed.html` is third-party HTML** dropped into the page — a trust/XSS surface today's single-iframe design never had. (→ `binder-ab29`)
-- **Deep/cyclic drill** needs a depth cap + cycle guard; each level is another fetch. (→ `binder-7ac4`)
-- **`generated_title` is auto-derived** — can be "Untitled" or a mid-sentence truncation; the numbered index + kind tag soften this, but it trades the old hand-authored names for zero-maintenance sourcing.
-- **Runtime dependence on the deprecated V2 API** (no rate-limit budget); the loading/failure frame names the posture but the details are open. (→ `binder-d4d4`, runtime-resilience fog)
-
-## Alternatives explored (react by pulling a different spine)
-
-| Direction | Score | What it argued | Fate |
+| Kind | Renderer | Source field | Mechanism |
 |---|---|---|---|
-| **Same Box, Deeper Stack** | 41/45 | Preserve both signatures; one box, one slot, per-class renderer, breadcrumb drill | **Chosen as spine** |
-| **Bound Index** (reader-first) | 40/45 | Calm numbered typographic index; loading state; fold logo into panel | Legibility + loading frame **grafted in** |
-| **Board & Card** (Are.na-native) | 36/45 | Spatial Board of thumbnails; explicit connections graph | Connections band + Board **grafted as options** |
+| Image | `ImageBlock` | `image.src` / `srcset` | native `<img>`, centered and contained |
+| Text | `TextBlock` | `html` (from `content.html`) | sanitized `{@html}` in a readable column |
+| Embed | `EmbedBlock` | `embedHtml` (from `embed.html`) | third-party HTML in a **sandboxed `srcdoc` iframe** (`allow-scripts allow-popups`) |
+| Attachment | `AttachmentBlock` | `attachment.url` + `contentType` | PDF inlines in an iframe (desktop); video/audio play natively; else a download card |
+| Link | `LinkBlock` | `link.url` | live site in a sandboxed iframe, plus an always-present "open in new tab" escape hatch |
+
+Two subtleties worth holding:
+
+- **Embeds are the video path.** A YouTube/Vimeo/Bandcamp item arrives from Are.na as
+  an *Embed* block carrying its own `embed.html`, which plays inside the sandboxed
+  `srcdoc` iframe — the sandbox is the trust boundary, so this HTML is deliberately
+  *not* run through the sanitizer (that would strip the `<iframe>`/`<script>` the embed
+  needs). A bare `youtube.com` watch *Link*, by contrast, is denylisted.
+- **PDFs split by device.** iOS Safari can't scroll an iframed PDF, so on mobile an
+  Attachment PDF degrades to a download card; on desktop it inlines (unsandboxed,
+  because Chrome's PDF viewer blanks under `sandbox`, and the source is trusted
+  are.na hosting).
+
+## Non-framable links → the fallback card
+
+A static app cannot detect an `X-Frame-Options` refusal — the iframe's `load` event
+fires even on a blocked frame. So Commonplace ships a **hostname denylist**
+([`src/lib/denylist.js`](../../src/lib/denylist.js)) as the decision, matched on the
+exact hostname (so `docs.google.com` frames while `google.com` doesn't). It covers the
+known refusers: nytimes, twitter/x, facebook, instagram, github, linkedin, reddit,
+youtube.
+
+When you open a denylisted Link, `Stage` keeps the *previously painted* content in the
+background and floats a `FallbackCard` — thumbnail, provider, and "open in new tab" —
+on an overlay layer. The `link!` tag in the index pre-warned this, so the card reads as
+expected, not as a broken frame:
+
+```
++================================================================+
+|   .--------------------------.     [ the last block stays      |
+|   | Reading Room       – grid|       painted behind the card ] |
+|   |..........................|                                 |
+|   | 07 NYT feature   link![*]|                                 |
+|   '--------------------------'      .----------------------.   |
+|    '--------------------------'     | [thumb] NYT feature  |   |
+|     '--------------------------'    | nytimes.com·won't    |   |
+|                                     | frame  open in tab ▸ |   |
+|                                     '----------------------'   |
++================================================================+
+```
+
+For a Link that *is* framable, the live iframe fills the slot and the "open in new tab"
+hatch sits quietly in a corner, growing prominent after ~2 seconds (a time-based nudge,
+since there's no reliable failure signal to trigger on). See
+[`embedding.md`](./embedding.md) for the full framing rationale.
+
+## Grid / board view
+
+The `grid` toggle appears in the header only when the current channel has loaded blocks
+that carry an image (`gridAvailable` in `App.svelte`). Toggling it swaps the stage for a
+full-viewport `ThumbGrid` — a contact sheet of `image.thumb` (or `image.src`) across the
+channel's loaded blocks. Clicking a thumbnail opens that block and drops back to the
+single view. The board is per-channel state: it resets on any drill, jump, or hash
+change, so it never bleeds across channels.
+
+## Drill, breadcrumb, and sideways jumps
+
+The whole channel graph is one uniform tree: the synthetic root's entries are the
+configured channels, and every channel's entries are its blocks plus nested-channel
+drill nodes. One breadcrumb spans all of it.
+
+**Drill in place.** Selecting a `>ch N` row navigates to `[...path, childSlug]`; the
+box swaps its list for the child's blocks and the breadcrumb grows a crumb. `nav.enter`
+is **cycle-guarded** (a slug already on the path is refused) and **depth-capped** at
+`DEPTH_CAP = 8` ([`src/lib/router.js`](../../src/lib/router.js)), so a channel that
+links back to an ancestor can't loop.
+
+**Breadcrumb.** `[‹ Home] / Channel / Field Notes`. The first crumb is the synthetic
+root ([`Breadcrumb`](../../src/components/Breadcrumb.svelte)); clicking any crumb pops
+the path to that depth. The last crumb is the current node, non-clickable.
+
+**Sideways jumps.** Below the list, the connections strip
+([`ConnectionsStrip`](../../src/components/ConnectionsStrip.svelte)) shows
+`<-> connected: >…` — the current channel's Are.na connections, with any channel already
+on the path filtered out (no cyclic affordance). A jump is *sideways, not a child*: it
+**reroots** the breadcrumb at the target rather than nesting under the current channel.
+
+```
+   click "05 Field Notes >ch 12"  ->  same box, child contents, grown crumb
+        .-------------------------------.
+        | ‹ Home / Reading Room / Field… |
+        |...............................|
+        | 01 Marginalia         [text]  |
+        | 02 Sketch 04         [image]  |
+        | 03 Sub-channel        >ch 3   |   <- drill again (capped at depth 8)
+        |...............................|
+        | <-> connected: >archive >refs |   <- jump: reroots the breadcrumb
+        '-------------------------------'
+         '-------------------------------'
+```
+
+Each channel is two-plus fetches — metadata, a first contents page (`per=100`), and
+connections — against the Are.na **V3** REST API (`https://api.are.na/v3`), all cached
+in-session ([`src/lib/arena.js`](../../src/lib/arena.js)). Long channels paginate lazily
+behind `load more…` (`hasMore` from `meta.has_more_pages`). A 429 backs off on status
+alone, since rate-limit headers aren't browser-readable.
+
+## Mobile: the pinned bar
+
+At `≤768px`, `global.css` re-pins the panel to `left/right/top: 2px` — a near-full-width
+bar at the top of the screen — and drag is disabled. The body is collapsed by default,
+so the bar reads as a title plus the `–/+` and `grid` controls; expanding it drops the
+index down over the content. Breadcrumb, connections, drill, and the fallback card all
+behave exactly as on desktop.
+
+```
+  collapsed (default):        expanded (+):
+ +--------------------+      +--------------------+
+ | ⋮ Field Notes  grid+|     | ⋮ Field Notes grid –|
+ +--------------------+      |....................|
+ |                    |      | ‹ Home / … / Field |
+ |   block fills the  |      | 01 Marginalia text |
+ |   full screen      |      | 02 Sketch 04  image|
+ |   behind the bar   |      | 03 Sub-ch     >ch 3|
+ |                    |      | <-> >archive       |
+ +--------------------+      +--------------------+
+```
+
+## Related reading
+
+- Field-by-field API mapping: [`../research/arena-v3-field-confirmation.md`](../research/arena-v3-field-confirmation.md)
+- Framing / denylist design: [`./embedding.md`](./embedding.md)
+- Channel-to-navigation model: [`./organizing-model.md`](./organizing-model.md)
+- Build plan: [`../../.agents/docs/plans/2026-07-11-arenotebook-build.md`](../../.agents/docs/plans/2026-07-11-arenotebook-build.md)
+- Known issues / audit: [`../../.agents/docs/ISSUES.md`](../../.agents/docs/ISSUES.md)
+</content>
+</invoke>

@@ -1,105 +1,223 @@
-# Binder × Are.na — the organizing model (decided)
+# The organizing model
 
-> **API version:** the project builds on **Are.na V3** (`docs/research/arena-api-v3.md`). Field names below are V2-verified — translate them per that doc's V2→V3 mapping during implementation (the *logic* is unchanged; `Media`→`Embed`, `content_html`→`content.html`, etc.).
+Commonplace turns a short config — a site title/about plus an ordered list of
+public Are.na channel slugs — into a browsable tree. This doc explains how that
+tree is *shaped* and *navigated*: how config channels become sections, how blocks
+and nested channels form one uniform drill tree, and how the breadcrumb,
+connections strip, landing, and hash routing behave. It is the map that
+[`src/lib/nav.svelte.js`](../../src/lib/nav.svelte.js),
+[`src/lib/router.js`](../../src/lib/router.js), and
+[`src/lib/model.js`](../../src/lib/model.js) implement — read it before touching
+them. Commonplace is a rebuild of [Binder](https://github.com/clementvalla/binder);
+the multi-channel menu is Binder heritage, now with each menu entry an Are.na
+channel. The app talks to the **Are.na V3** REST API
+(`https://api.are.na/v3`, [`src/lib/arena.js`](../../src/lib/arena.js)); field
+paths follow [`arena-v3-field-confirmation.md`](../research/arena-v3-field-confirmation.md).
 
-> Resolves **"Design the channel-to-navigation organizing model"** (`binder-7ac4`).
-> Builds on the storyboard (`docs/design/binder-arena-storyboard.md`) and the API research
-> (`docs/research/arena-public-api.md`). Forks settled by grilling, then adversarially
-> stress-tested and corrected, on 2026-07-11.
-
-## The model in one picture
+## The shape in one picture
 
 ```
 SITE (config: title/about + ordered channel slugs)
 │
 ├─ Section A  (Are.na channel)  ─────────────┐  each section is a channel:
-│    ├─ 01 block ....[txt]                    │   • blocks (contents, state=available) = ordered entries
-│    ├─ 02 block ....[pdf]                    │     by `position`, labelled `generated_title`, tagged `class`
-│    ├─ 03 sub-channel .....>ch 8  ── drill ──┼─▶ • a Channel block in contents = a nested drill node
-│    └─ <-> connected: >x >y      ── jump ────┘   • connections strip (/connections) = sideways jumps
+│    ├─ 01 block ....[txt]                    │   • available blocks = ordered entries,
+│    ├─ 02 block ....[pdf]                    │     labelled by deriveTitle, tagged by kind
+│    ├─ 03 sub-channel .....>ch 8  ── drill ──┼─▶ • a Channel block in contents = a drill node
+│    └─ <-> connected: >x >y      ── jump ────┘   • connections strip = sideways jumps
 │
 ├─ Section B  (Are.na channel)   …
 └─ Section C  (Are.na channel)   …
 ```
 
-The **root** is a synthetic "site" node whose entries are the configured section channels.
-Below it everything is **uniform**: a channel holds ordered blocks + nested Channel drill-nodes,
-with a connections strip — the same shape at every depth. One breadcrumb spans the tree.
+The **root** is a synthetic "site" node whose entries are the configured section
+channels. Below it everything is **uniform**: a channel holds ordered blocks plus
+nested Channel drill-nodes, with a connections strip — the same shape at every
+depth. One breadcrumb spans the whole tree.
 
-## Decisions
+## The block model
 
-| Question | Decision |
-|---|---|
-| **Root scope** | **Several top-level channels** = the site's *sections*. Config supplies an ordered list of channel slugs + optional site title/about. (Faithful to Binder's original multi-entry menu — each entry is now a channel.) |
-| **What is a nav entry** | Inside a channel: each **block** in `contents` with `state == "available"`, in `position` order, labelled by `generated_title`, tagged by `class`. A **Channel block** (`base_class: Channel`) in that same `contents` is a **drill node**. The **root** is a synthetic channel whose entries are the section channels — uniform top to bottom. |
-| **Connections** | **Nested + a connections strip** at each channel level, from `GET /channels/:slug/connections` (items carry `slug` — navigable). Sideways jumps to related channels. *Not* a full graph map. |
-| **Rendering** | One full-viewport slot, **per-class renderer**: Link→iframe `source.url`, Media→sandboxed `srcdoc` embed, Image→`<img>`, Text→sanitized `content_html`, Attachment→PDF. **Embedding details + the non-iframeable fallback: `docs/design/embedding.md`.** |
-| **Drill** | Breadcrumb, depth **capped at 8**, with a **cycle guard** (skip any channel id already on the path). |
-| **Signature UX** | Preserve the draggable box-shadow panel + full-viewport slot; **fold the logo + about into the panel header**; active row is **black** (live `.active`). |
-| **Board view** | **Deferred** — an opt-in thumbnail grid for large/image-heavy channels, a follow-on. |
+Every renderer and nav node consumes a `NormBlock`, never raw Are.na JSON.
+`normalizeBlock` (in `model.js`) discriminates on the V3 `type` field and pulls
+each kind's fields onto a flat shape:
 
-## Navigation & levels
-
-1. **Root (the site).** Header shows the config `title`/`about`; entries are the section channels as drill nodes. Breadcrumb root label = the **config title** (not a hardcoded "Binder").
-2. **A section (a channel).** Header swaps to that channel's `title` / `metadata.description`; entries are its `available` blocks + nested channels + the connections strip. Breadcrumb `‹ <Site> / Section A`.
-3. **Deeper.** Same shape; breadcrumb grows; `‹` pops one level; depth-capped, cycle-guarded.
-
-```
-ROOT (site)                         INSIDE Section A
-.----------------------.            .----------------------------.
-| My Binder    ::move::|            | ‹ My Binder / Reading Room |
-|......................|            |............................|
-| > Reading Room  >ch  |            | 01 Intro note .......[txt] |
-| > Field Work    >ch  |   drill    | 02 NASA SP-2009 .....[pdf] |
-| > Ephemera      >ch  |  ───────▶  | 03 cempontra ....link![lnk]|
-'----------------------'            | 04 Field Notes ......>ch 12|
- '----------------------'           | <-> connected: >src >zine  |
-  '----------------------'          '----------------------------'
- header = config title/about        header = channel title/about
-```
-
-## Routing & addressability (preserve today's hash-routing)
-
-Today Binder is hash-routed (`window.onhashchange`; deep-linkable, back-button works). Keep that:
-
-- **The hash encodes the drill path by stable ids**, not ordinals — e.g. `#reading-room/field-notes/b:47749402` (channel slugs down the path, optional `b:<blockId>` for the open block). Ordinals (`01`) are **display only**; deep-links use block **id** so a reorder in Are.na doesn't break shared links.
-- **Landing defers to the incoming hash.** With a hash present, resolve straight to that path. With an empty hash, auto-enter the **first section** and open its first **renderable** block (prefer a class that actually paints — Image/Media/Attachment or a known-framable Link — over one that would open on a fallback card; if the section is empty or has only drill-nodes, show the section index with a calm empty stage, never a blank spinner). *(Binder's "load the first one," adapted — not a claim that the first thing is always a full site behind the box; see `docs/design/embedding.md`.)*
-- **A connection jump starts a fresh breadcrumb rooted at the target** channel (an explicit "jumped from" crumb optional) — it does *not* append, because sideways ≠ child. The strip **hides** any channel already on the current path (no dead/cyclic affordance).
-- **Back button** replays the hash stack via `onhashchange`.
-
-The detailed encoding is refined during the codebase migration; the *shape* above is the decision.
-
-## Runtime & fetch strategy
-
-- `GET /channels/:slug?per=100` returns channel **meta + the first page of `contents`** — there is *no* meta-only call, so the first 100 blocks arrive with the meta. **Reuse that first page** as the section's page 1; don't refetch on entry.
-- **Do not fetch-all on entry.** Render page 1, then **lazy-load more** on demand ("load more" / scroll) — a 3000-block channel must not fire 30 sequential calls into an API that publishes no rate budget. Keep a list render cap regardless (the deferred Board is the eventual answer for huge channels).
-- **Filter to `state == "available"` before numbering**, and paginate on an observed short page — not on raw `length` (which counts non-available blocks), so numbering and page math stay consistent.
-- **Root fetches N section metas** (one page each). **Degrade per section:** render every reachable section; mark a dead one (404 / private — recall *closed* is still readable, only *private* fails); never abort the whole site for one bad slug.
-- Cache resolved channels in-session.
-
-## Data → model mapping (grounded in the verified API)
-
-| Are.na | Binder role | Source |
+| V3 `type` | `kind` | Key normalized fields |
 |---|---|---|
-| config channel slugs (ordered) | the top-level **sections** | config |
-| `channel.title` / `metadata.description` | section header; site header comes from config | in the `GET /channels/:slug` response |
-| `block` in `contents`, `state==available`, `position` order | a nav **entry**; `generated_title`→label; `class`→tag + renderer | first page free with the channel fetch; lazy for more |
-| `Channel` block (`base_class: Channel`) in `contents` | a **drill node** | same `contents` |
-| `GET /channels/:slug/connections` (`channels[]`, each with `slug`) | the **connections strip** | separate fetch |
+| `Image` | `image` | `image` — `{ src, thumb, srcset, alt, aspectRatio, blurhash }` |
+| `Text` | `text` | `html` (from `content.html`, pre-sanitize) |
+| `Embed` | `embed` | `embedHtml` (from `embed.html`), `embedType` |
+| `Attachment` | `attachment` | `attachment` — `{ url, contentType, filename, ext }` |
+| `Link` | `link` | `link` — `{ url, provider, title, thumb }` |
+| `Channel` *(or a `Link` at an are.na channel URL)* | `channel` | `channelSlug`, `count` |
+| anything else | `unknown` | — |
 
-**Are.na-URL Links normalize to drill:** a Link block whose `source.url` points at an are.na channel is detected and treated as a nested drill (are.na sends `X-Frame-Options`, so framing it would fail anyway) — same destination, one behavior.
+Two derivations matter for the index:
 
-## What this graduates
+- **Label** comes from `deriveTitle(b)`: the block's `title`, else the first line
+  of its text/description plain content (trimmed to 80 chars), else `'Untitled'`.
+  There is no V3 `generated_title` — the numbered index and kind tag exist partly
+  to soften a bare `'Untitled'`.
+- **Availability**: only blocks with `state === 'available'` (`isAvailable`) are
+  kept, and the filter runs *before* numbering, so the displayed ordinals and
+  page math stay consistent.
 
-- **Self-hosting config is now specifiable** → new ticket. The site = "title/about + ordered channel slugs," so the config **shape + delivery** (fetched `config.json` vs `?channels=` params) + theming is sharp — and it's a **breaking change** from today's `info.json` name→URL `menu`, so migration must be part of it.
-- **Board view** stays deferred (a follow-on once the base nav ships). → fog.
+**Are.na-URL Links normalize to a drill.** `isArenaChannelLink` detects a `Link`
+whose `source.url` points at an are.na channel (but not a `/block/:id`) and
+`blockKind` returns `channel` for it. Same destination as a native Channel block,
+one behavior — and framing it would fail anyway (are.na sends `X-Frame-Options`).
 
-## Open risks carried forward
+## Sections and the block index
 
-- Runtime dependence on the **deprecated V2 API** (`binder-d4d4`); **framing detection** is heuristic (`binder-ab29`); injected `embed.html` is a third-party-HTML trust surface (`binder-ab29`).
-- **`generated_title` quality** — can be "Untitled" or truncated; the numbered index + class tag soften it; the self-hoster trades hand-authored names for zero-maintenance sourcing.
-- **Reorders renumber** the display index (numbering is by `position`); harmless because deep-links key on block id, but the visible ordinals are not stable identifiers.
+`Nav.loadRoot()` resolves the config's `channels` slugs into the root's entries.
+It fetches each channel's meta with `Promise.allSettled` and **degrades per
+section**: a reachable channel becomes a `channel`-kind entry carrying its
+`title` and `count` (from `counts.contents`); a failed one (404 / private — note
+a *closed* channel is still readable, only *private* fails) is marked `dead: true`
+and still shown. One bad slug never aborts the whole site.
 
-## Alternative left on the table
+Inside a section, each entry renders as a numbered row: `deriveTitle` label plus a
+kind tag. A `channel`-kind entry shows `>ch N`, where `N` is its `count`, and acts
+as a drill node rather than opening a block.
 
-Presenting sections as a **grouped accordion** (expand in place to reveal blocks) instead of drill-in nodes — a nicer top-level feel at the cost of a second interaction pattern. Defaulted to uniform drill for coherence; easy to revisit.
+## Drill: breadcrumb, depth cap, cycle guard
+
+The drill stack is `Nav.path`, an array of `{ slug, title, description }` nodes
+(root is the implicit empty path). The `breadcrumb` getter prepends the synthetic
+root, whose label is the **config title** (fallback `'Home'`), never a hardcoded
+"Binder":
+
+```js
+get breadcrumb() {
+  return [{ slug: null, title: this.config.title || 'Home' }, ...this.path];
+}
+```
+
+`enter(slug, title)` drills into a child channel, but only after two guards:
+
+```js
+if (this.path.some((n) => n.slug === slug)) return; // cycle guard
+if (this.path.length >= DEPTH_CAP) return;          // depth cap
+```
+
+`DEPTH_CAP` is **8** and lives in `router.js`; the cycle guard lives here in nav
+resolution. A revisit of a channel already on the path, or a drill past depth 8,
+is a silent no-op — no dead or cyclic affordance. `pop(toDepth)` truncates the
+path to `toDepth` nodes and reloads that channel (`toDepth <= 0` returns to root).
+
+## Connections strip and sideways jumps
+
+Each entered channel loads a **connections strip** via `getConnections(slug)`
+(`GET /channels/:slug/connections`), which returns related channels as
+`{ slug, title }`. The strip is *not* a full graph map — it is a row of sideways
+jumps to related channels. `#loadConnections` hides any channel already on the
+current path, so the strip never offers a cyclic step:
+
+```js
+const onPath = new Set(this.path.map((n) => n.slug));
+this.connections = channels.filter((c) => !onPath.has(c.slug));
+```
+
+A failed connections fetch degrades to an empty strip but is logged, so a rate-limited
+429 is distinguishable from a channel that genuinely has no connections (see
+[`ISSUES.md`](../../.agents/docs/ISSUES.md) I4).
+
+**A jump is not a child.** `jump(slug, title)` starts a *fresh* breadcrumb rooted
+at the target — it replaces the path rather than appending, because sideways ≠
+deeper — and sets `connectionMode = true` to mark that the node was reached via a
+jump. There is no separate "jumped from" crumb; `connectionMode` is the only
+marker (`enter` and `loadRoot` clear it).
+
+```js
+async jump(slug, title) {
+  const node = await this.#loadChannel(slug, title);
+  this.path = [node];              // fresh breadcrumb rooted at the target
+  this.connectionMode = true;
+  await this.#loadConnections(slug);
+}
+```
+
+## Landing rule
+
+When a section opens with no specific block requested, `Nav.landing()` auto-opens
+the first block that will actually paint, scanning by kind priority — Image →
+Embed → Attachment → Link:
+
+```js
+for (const kind of ['image', 'embed', 'attachment', 'link']) {
+  const c = this.blocks.find((b) => b.kind === kind && paints(b));
+  if (c) { this.active = c; return c; }
+}
+this.active = null; // nothing paints → show the section index, a calm empty stage
+```
+
+A block `paints` when it is an `image` or `attachment`, an `embed` with non-empty
+`embedHtml`, or a `link` whose URL is not on the framing denylist (`isDenylisted`).
+A channel that is empty, drill-only, or has only denylisted links lands on its
+index instead of opening a fallback card — never a blank spinner.
+`openBlock(id)` sets `active` for a normal block; a `channel`-kind entry never
+opens (it is a drill node).
+
+## Hash routing by block id
+
+Navigation is hash-routed, so it is deep-linkable and the back button replays the
+stack via `onhashchange`. `router.js` encodes the drill path by **stable channel
+slugs** plus an optional open **block id** — never ordinals — so a reorder in
+Are.na doesn't break a shared link:
+
+```
+#reading-room/field-notes/b:47749402
+   └── slugs down the path ──┘  └─ optional b:<blockId> for the open block
+```
+
+`encodePath(slugs, blockId)` joins the `DEPTH_CAP`-capped, URL-encoded slugs and
+appends `b:<id>` when a block is open; `decodeHash(hash)` returns
+`{ slugs, blockId }`; `navigate(slugs, blockId)` writes the hash. The app resolves
+a decoded path by entering each slug in turn, then `openBlock(blockId)` if one is
+present or `landing()` for an empty tail. An empty hash lands on the site: it
+auto-enters the first section and calls `landing()`.
+
+## Fetch and caching
+
+In V3, channel **meta and contents are two separate calls** — there is no combined
+response. `#loadChannel` fetches `getChannelMeta(slug)` (`GET /channels/:slug` →
+`title`, `description`, `counts`) and then page 1 of `getContentsPage(slug, 1)`
+(`GET /channels/:slug/contents?page=1&per=100`, already filtered to `available`
+and normalized).
+
+- **Don't fetch-all on entry.** Render page 1, then `loadMore()` appends the next
+  page on demand. Pagination keys on the response `meta.has_more_pages`
+  (`Nav.hasMore`), not on a raw list length that would also count non-available
+  blocks. A large channel must not fire dozens of sequential calls into an API
+  that publishes no readable rate budget.
+- **In-session caches.** `arena.js` memoizes meta, contents pages, and connections
+  in `SvelteMap`s keyed by slug (and `slug:page`), so re-entry and back-navigation
+  don't refetch.
+- **Rate limits.** Are.na's rate-limit headers are not browser-readable, so a 429
+  triggers a fixed, escalating backoff (`backoffMs * (attempt + 1)`, up to
+  `maxRetries`) rather than honoring a `Reset` header. A persistent 429 surfaces
+  as `Nav.error`.
+
+## Rendering, briefly
+
+Each block opens into one full-viewport slot with a per-kind renderer — `Link` →
+iframe, `Embed` → sandboxed `srcdoc`, `Image` → `<img>`, `Text` → sanitized
+`content.html`, `Attachment` → PDF. About-HTML (a channel's `description` and the
+config `about`) is sanitized on the single `Nav.about` path before any `{@html}`
+sink ([`ISSUES.md`](../../.agents/docs/ISSUES.md) I1). Embedding details, the
+sandbox trust boundary, and the non-iframeable fallback live in
+[`embedding.md`](./embedding.md). The config shape and delivery are in
+[`config.md`](./config.md).
+
+## Caveats
+
+- **Title quality.** `deriveTitle` can yield `'Untitled'` for a block with no
+  title and no text; the numbered index and kind tag are what keep the row legible.
+- **Ordinals aren't identifiers.** The numbered index reflects the channel's
+  current content order, so a reorder in Are.na renumbers the display. This is
+  harmless because deep-links key on block **id**, but the visible `01`, `02` are
+  never stable references.
+- **Third-party trust surfaces.** Framing detection is a denylist heuristic, and
+  an `Embed` injects third-party HTML — both are isolated by the sandbox described
+  in [`embedding.md`](./embedding.md).
+
+A board view — an opt-in thumbnail grid for large or image-heavy channels — is a
+deliberate follow-on, not part of the base navigation model.

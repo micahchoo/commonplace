@@ -1,43 +1,30 @@
-# Binder × Are.na — the name (decided: Commonplace)
+# How the project got its name
 
-> Resolves **"Name the rebuilt tool — keep 'Binder' or rename?"** (`binder-c8c3`).
-> Chosen by the maintainer, 2026-07-11.
+The tool is **Commonplace**, named for the
+[commonplace book](https://en.wikipedia.org/wiki/Commonplace_book) — a personal book of
+collected quotes, clippings, and notes, which is essentially what an Are.na channel is.
 
-## Decision
+## It was almost "AreNotebook"
 
-The rebuilt tool is **Commonplace** — named for the [commonplace book](https://en.wikipedia.org/wiki/Commonplace_book),
-a personal book of collected quotes, clippings, and notes, which is essentially what an Are.na channel is.
+The first working name was **AreNotebook** (Are.na + notebook); it briefly propagated through
+the code and docs before the rename. Two things pushed the change during the QA pass:
 
-> **Superseded:** the name was initially **AreNotebook** (Are.na + notebook) and briefly propagated through
-> the code. The maintainer changed it to **Commonplace** during the QA pass (2026-07-11): it doesn't lean on
-> the Are.na trademark (sidesteps the caveat below) and names the "collected notebook" idea directly. The
-> AreNotebook availability/alternatives notes below are kept as history.
+- **Trademark.** "AreNotebook" derives from and leans on "Are.na" — common for API-client
+  tools, but it can read as official endorsement. "Commonplace" doesn't touch the Are.na mark.
+  (The independence disclaimer in the [README](../../README.md#a-note-on-the-name) still stands;
+  the *name* just no longer leans on it.)
+- **It names the idea directly.** A commonplace book *is* what Commonplace makes — a bound,
+  browsable collection — without spelling out the source.
 
-## Availability (verified 2026-07-11)
+## Alternatives considered
 
-Fully clear — the best availability of any candidate considered:
+From a brainstorm across four lenses — binding, connective, window, brandable:
 
-- npm `arenotebook` — free
-- `github.com/arenotebook` (org/user) — free
-- `arenotebook.com` and `arenotebook.io` — both unregistered (NXDOMAIN)
+| Name | The idea |
+|---|---|
+| Keep **Binder** | Strongest continuity; zero migration cost. |
+| **Sheaf** | A bound bundle of leaves — and the math object that glues local scraps into one coherent whole. |
+| **Weft** | The crosswise thread of the woven menu. |
+| **Vitrine** | The full-viewport display-case pane. |
 
-## Caveat to weigh (flagged, not blocking)
-
-- **Brand association / trademark:** the name derives from and leans on "Are.na." This is common for API-client tools, but it can imply official endorsement, and Are.na could object. If that's a concern, a "for Are.na" framing (a distinct name + "an Are.na browser") or a non-derived name sidesteps it. Worth a quick trademark sanity-check before the rebrand propagates.
-- **Say-ability:** "AreNotebook" parses a little awkwardly spoken ("are notebook"); the camelCase carries it in text.
-
-Nothing is built yet, so this is trivially reversible.
-
-## Alternatives considered (brainstormed + vetted)
-
-- **Keep Binder** — strong continuity default (fits; zero migration cost).
-- **Sheaf** — a bound bundle of leaves + the math object that glues local scraps into one coherent whole (best conceptual fit).
-- **Weft** — the crosswise thread of the woven menu.
-- **Vitrine** — the full-viewport display-case pane.
-- **Tessle** — the only other fully-clear namespace.
-
-From a 32-candidate brainstorm across four lenses (binding / connective / window / brandable), deduped and availability-vetted (most dictionary names had npm + gh-org taken).
-
-## Consequence
-
-Rebrand Binder → Commonplace (repo, docs, README, `binder-clip` assets) rides with the codebase migration.
+"Commonplace" won on fit (a collected notebook) and for sidestepping the trademark question.

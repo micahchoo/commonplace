@@ -1,56 +1,103 @@
-# Are.na API V3 vs V2 — evaluation & recommendation
+# Are.na API: V2 → V3 migration reference
 
-> Resolves **"Evaluate Are.na API V3 vs staying on deprecated V2"** (`binder-d4d4`).
-> Empirically probed against the live API + `are.na/developers/explore` docs on 2026-07-11.
+Commonplace reads public Are.na channels at runtime through the V3 REST API. This
+doc records *why* V3 (rather than the deprecated V2 that Binder-era research first
+targeted) and the V2→V3 field-name delta, so anyone reading V2-worded design notes
+can translate them. For the **authoritative** field paths the live code actually
+depends on, see [`arena-v3-field-confirmation.md`](arena-v3-field-confirmation.md),
+which was probed against the live API — this doc is the rationale and migration map,
+that one is the ground truth.
 
-## Recommendation: build on **V3 now**
+## Why V3
 
-This reverses the earlier "V2 behind an adapter" lean — the fresh evidence favors V3:
-
-- **V3 is live, public-readable, CORS `*`, no auth** (verified: `GET /v3/channels/:slug` → 200, `ACAO: *`). Same load-bearing property Binder needs, and reads are "Optional"-auth (work unauthenticated).
-- **V3 is the actively-documented, going-forward API**; V2 is banner-deprecated. No V2 sunset date is published, but building a *new* app on a deprecated API to migrate later is a false economy.
-- **Every field the design needs exists in V3**, just renamed/renested (mapping below) — a mechanical remap, not a redesign. `embed.html`, `source.url`, `attachment.url` are unchanged.
-- **V3 publishes rate limits + `X-RateLimit-*` headers**, which makes the resilience story concrete (backoff off `X-RateLimit-Reset`) and *validates* the design's lazy/cached/no-fetch-all decisions — V3's docs literally say "Paginate, Don't Enumerate."
-- Still **isolate all Are.na calls behind the thin adapter** the organizing model already mandates, so the shape lives in one place.
-
-**Honest costs:** (1) the design docs reference V2 field names → a bounded translation per the mapping below; (2) V3's **guest rate limit (30 req/min)** is a real ceiling to design around.
+- **Public, no auth, CORS.** `GET /v3/channels/:slug` returns `200`; on a
+  cross-origin request (one carrying an `Origin` header) the server responds with
+  `Access-Control-Allow-Origin: *`. Browser fetch works unauthenticated, no proxy —
+  the load-bearing property Binder needs.
+- **V3 is the going-forward API.** V2 is banner-deprecated with no published sunset;
+  building a new app on it to migrate later is a false economy.
+- **Every field the design needs exists in V3**, just renamed or renested (table
+  below) — a mechanical remap, not a redesign.
+- **V3 publishes rate limits** and mandates on-demand pagination ("Paginate, Don't
+  Enumerate"), which matches the app's lazy, cached, no-fetch-all design.
+- **All Are.na calls stay behind one thin adapter**
+  ([`src/lib/arena.js`](../../src/lib/arena.js)); everything else consumes
+  normalized blocks ([`src/lib/model.js`](../../src/lib/model.js)), so the V3 shape
+  lives in exactly one place.
 
 ## Verified V3 facts
 
-- Base `https://api.are.na`; endpoints under `/v3/…`. Reads are "Optional"-auth → **unauthenticated public reads work, CORS `*`**. (Auth, when used: OAuth2 PKCE or Personal Access Tokens, scopes `read`/`write`.)
-- **Pagination:** `page` + `per` (default 24, **max 100**). Responses are `{ data: [...], meta: {...} }` with `meta.{current_page, per_page, total_pages, total_count, next_page, prev_page, has_more_pages}`. Docs mandate paginating on demand — no `per=100` enumerate-loops.
-- **Rate limits (enforced, per-minute):** Guest 30 · Free 120 · Premium 300 · Supporter 600. Headers on every response: `X-RateLimit-Limit/Tier/Window/Reset`; `429` on exceed. Acceptable-use forbids scraping/bulk (per-user runtime fetch is fine).
-- **Channel object:** no embedded `contents`/`length`; instead `counts`, `_links` (hypermedia), `visibility` (replaces `status`), `metadata`, `description`, `title`, `slug`, `owner`, `state`, `type`.
-- **Contents:** `GET /v3/channels/:slug/contents` → `{data, meta}`. **Connections:** `GET /v3/channels/:slug/connections` → `{data, meta}`. (No `/blocks` sub-endpoint → 404.)
+- Base `https://api.are.na`, endpoints under `/v3/…`. Reads are optional-auth:
+  unauthenticated public reads work. (Auth, when used: OAuth2 PKCE or personal
+  access tokens, scopes `read`/`write`.)
+- **Pagination:** `page` + `per` (default 24, **max 100**). Responses are
+  `{ data: [...], meta: {...} }` with
+  `meta.{current_page, per_page, total_pages, total_count, next_page, prev_page, has_more_pages}`.
+- **Two calls, not one:** `GET /v3/channels/:slug` returns channel meta only (no
+  embedded `contents`); contents come from `GET /v3/channels/:slug/contents`.
+  Connections come from `GET /v3/channels/:slug/connections`. There is no `/blocks`
+  sub-endpoint (→ 404).
+- **Channel object** has no embedded `contents` or `length`; instead `counts`,
+  `visibility` (replaces V2 `status`), `description{html,markdown,plain}`, `title`,
+  `slug`, `owner`, `state`, `type`, `_links`.
 
-## V2 → V3 field mapping (the migration delta)
+## V2 → V3 field mapping
 
 | Concept | V2 | V3 |
 |---|---|---|
-| discriminator | `class` + `base_class` | `type` + `base_type` |
+| discriminator | `class` + `base_class` | `type` + `base_type` (`base_type` is `"Block"`; **absent for `Channel`**) |
 | media/embed block | `class: "Media"` | **`type: "Embed"`** |
-| embed HTML | `embed.html` | `embed.html` — **unchanged** (`embed:{html,type,source_url,thumbnail_url,…}`) |
-| link URL | `source.url`, `source.provider.name` | `source.url` (`source:{provider,title,url}`) — unchanged |
-| text body | `content_html` | **`content.html`** (`content:{html,markdown,plain}`) |
-| image | `image.display/thumb/original.url` | `image.large` (+ `blurhash`, `aspect_ratio`, `content_type`, `filename`…) — confirm exact URL fields at build |
-| attachment | `attachment.url` / `.content_type` / `.file_name` | `attachment.url` / `.content_type` / `.filename` (+`file_extension`) — near-identical |
-| nav label | `generated_title` (always present) | **derive** from `title` (nullable) `||` `description` `||` "Untitled" — no `generated_title` |
-| ordering | `block.position` | order = `data[]` sequence; per-block `connection` object holds position/connected_at |
-| visibility | `status` (public/closed/private) | `visibility` |
-| count | channel `length` | channel `counts` |
-| contents fetch | embedded in channel + `/contents` (bare array) | `/contents` → `{data, meta}` (no embedded contents) |
+| embed HTML | `embed.html` | `embed.html` — **unchanged** (`embed:{html, type, source_url, thumbnail_url,…}`; `embed.type` is `video`/`rich`, `embed.url` is null) |
+| link URL | `source.url`, `source.provider.name` | same — `source:{url, title, provider:{name, url}}` |
+| text body | `content_html` | **`content.html`** (`content:{html, markdown, plain}`) |
+| image | `image.display/thumb/original.url` | `image.src` (original) + variants `image.{small,medium,large}.{src, width}` (→ srcset); plus `image.alt_text`, `image.aspect_ratio`, `image.blurhash` |
+| attachment | `attachment.url` / `.content_type` / `.file_name` | `attachment.url` / `.content_type` / `.filename` / `.file_extension` |
+| nav label | `generated_title` (always present) | **derive** — `title` → (Text: first line of `content.plain`, truncated) → `description.plain` → `"Untitled"`. No `generated_title`. |
+| ordering | `block.position` | order = `data[]` sequence (each block also carries a `connection.position`) |
+| visibility | `status` (public/closed/private) | `visibility` (public/closed/private) |
+| item count | channel `length` | channel `counts` (`counts.contents`, else `counts.blocks`) |
+| contents fetch | embedded in channel + `/contents` (bare array) | `/contents` → `{data, meta}`; no embedded contents |
 | pagination signal | `length` + compute pages | `meta.has_more_pages` / `meta.next_page` |
 
-All six block kinds are present (`Text, Link, Embed, Image, Attachment, Channel`). The embedding decisions survive unchanged in spirit: `Embed.embed.html` → sandboxed `srcdoc`; `Link.source.url` → iframe/denylist; `Image.image.large` → `<img>`; `Attachment.attachment.url` → PDF; `Text.content.html` → sanitized inline; `Channel` → drill.
+All six V3 block kinds are present — `Text, Link, Embed, Image, Attachment,
+Channel` — and each normalizes to a render:
 
-## Rate limits — a real constraint (guest = 30/min)
+- `Embed.embed.html` → sandboxed iframe `srcdoc`
+- `Link.source.url` → iframe (denylist-gated), else a fallback card
+- `Image` → `<img>` off `image.src` and its variants
+- `Attachment.attachment.url` → PDF / download
+- `Text.content.html` → sanitized inline HTML
+- `Channel` → drill node (`slug` direct, `counts.contents` → `>ch N`)
 
-Unauthenticated = **30 requests/minute**. A Binder page view (N section metas + drill + connections) spends several requests; 30/min is fine for one user browsing *with* the design's in-session cache + lazy pagination, but tight under heavy drilling. Mitigations (mostly already decided): cache resolved channels; lazy-load pages on demand (V3 mandates this); fetch section metas, not full contents, at root; **honor `429` with backoff**. Lifting to Free (120/min) needs a token — but a token in a static deploy is the same secret-exposure tradeoff rejected for private channels, so keep it a **power-user toggle, default guest**. This concretizes the "runtime resilience" fog.
+An Are.na Link whose `source.url` points at a channel normalizes to a `channel`
+drill node rather than a link (see `isArenaChannelLink` /
+[`blockKind`](../../src/lib/model.js)).
 
-> **Correction (2026-07-11, verified live — see `arena-v3-field-confirmation.md`):** the `X-RateLimit-*` headers are **not browser-readable**. They are present server-side but `Access-Control-Expose-Headers` is empty and no `Retry-After` is sent, so cross-origin client JS gets `null` from `response.headers.get('X-RateLimit-Reset')`. Backoff must therefore key on the **`429` status alone** (fixed/exponential), *not* on `X-RateLimit-Reset`. The earlier "backoff off `X-RateLimit-Reset`" phrasing assumed server-side header visibility.
+## Rate limits (guest = 30/min)
 
-## Consequences for the map
+Enforced per-minute, by tier: Guest 30 · Free 120 · Premium 300 · Supporter 600,
+with `429` on exceed. A single page view (section metas + a drill + connections)
+spends several requests, so 30/min is comfortable for one user browsing with the
+in-session cache and lazy pagination, but tight under heavy drilling.
 
-- Standing **Data** decision updated: build on **Are.na V3** (public reads, CORS, no auth).
-- `organizing-model.md` and `embedding.md` express logic against V2 field names; each now carries a banner pointing here, and the field translation is a **migration task** (bounded, mechanical).
-- **Runtime-resilience** fog gains a concrete requirement: honor `X-RateLimit-*` + `429` backoff.
+The `X-RateLimit-*` headers are present server-side but **not browser-readable**:
+`Access-Control-Expose-Headers` is empty and no `Retry-After` is sent, so
+cross-origin JS gets `null` from `response.headers.get('X-RateLimit-Reset')`.
+Backoff therefore keys on the **`429` status alone** (fixed, escalating), not on any
+reset header. The adapter retries with `backoffMs * (attempt + 1)` up to
+`maxRetries` — see `fetchJson` in [`src/lib/arena.js`](../../src/lib/arena.js).
+
+Mitigations already built into the adapter: cache resolved channel meta, pages, and
+connections in-session (`metaCache` / `pageCache` / `connCache`); lazy-load pages on
+demand; fetch section meta, not full contents, at the root. Lifting the ceiling to
+Free (120/min) would need a token, but a token in a static deploy is the same
+secret-exposure tradeoff rejected elsewhere — it would have to be a power-user
+toggle, default guest.
+
+## Related
+
+V2-worded logic still lives in the design notes
+[`organizing-model.md`](../design/organizing-model.md) and
+[`embedding.md`](../design/embedding.md); translate through the table above. The
+build plan lives under [`.agents/docs/plans/`](../../.agents/docs/plans/) and the
+open-issue audit at [`.agents/docs/ISSUES.md`](../../.agents/docs/ISSUES.md).
