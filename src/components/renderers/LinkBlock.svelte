@@ -27,20 +27,25 @@
     height: 100%;
     border: none;
   }
+  /* Centered so it's the clear call-to-action when the frame comes up blank (an
+     unlisted refuser) — most links that reach here refuse framing. On a page that
+     does frame, it's a compact centered pill over the content. */
   .hatch {
     position: fixed;
-    right: 12px;
-    bottom: 12px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     z-index: 5;
     background: var(--an-panel-bg);
     border: 1px solid var(--an-border);
-    box-shadow: var(--an-shadow-1) 2px 2px 0;
-    padding: 4px 8px;
-    font: 13px/1 var(--an-font);
+    box-shadow: var(--an-shadow-1) 3px 3px 0, 6px 6px 0 var(--an-shadow-2);
+    padding: 10px 16px;
+    font: 15px/1 var(--an-font);
     color: var(--an-accent);
     text-decoration: none;
   }
   .hatch:hover {
-    box-shadow: var(--an-shadow-1) 2px 2px 0, 4px 4px 0 var(--an-shadow-2);
+    background: var(--an-accent);
+    color: var(--an-panel-bg);
   }
 </style>

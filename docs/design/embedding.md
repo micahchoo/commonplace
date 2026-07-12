@@ -116,8 +116,8 @@ platforms, big publishers, and hosted-blog domains (`wordpress.com`, `substack.c
 the `embed` kind, not `link`). It's a living file — staleness is acceptable because the escape
 hatch covers any miss, and you can add domains.
 
-**2. The escape hatch** — `LinkBlock` always renders a visible *"open in new tab ▸"* anchor
-(bottom-right). A static app can't tell a successfully-framed page from a blocked one — `load`
+**2. The escape hatch** — `LinkBlock` always renders a visible, **centered** *"open in new tab ▸"*
+call-to-action (so it's the obvious action when the frame comes up blank). A static app can't tell a successfully-framed page from a blocked one — `load`
 fires either way — so the hatch is always present rather than triggered on failure. This is what
 recovers a denylist *miss*: an unlisted refuser shows a blank frame, and the hatch is the way out.
 
