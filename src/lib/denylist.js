@@ -25,5 +25,3 @@ export function isDenylisted(url) {
     return false;
   }
 }
-
-export const denylist = () => [...DENY];

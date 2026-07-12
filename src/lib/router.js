@@ -32,14 +32,7 @@ export function decodeHash(hash = '') {
   return { slugs: slugs.slice(0, DEPTH_CAP), blockId };
 }
 
-/** Subscribe to hash changes; returns an unsubscribe fn. */
-export function onHash(cb) {
-  const handler = () => cb(decodeHash(window.location.hash));
-  window.addEventListener('hashchange', handler);
-  return () => window.removeEventListener('hashchange', handler);
-}
-
-/** Set the hash (drives navigation via onHash). */
+/** Set the hash (App's hashchange listener drives navigation from it). */
 export function navigate(slugs, blockId) {
   window.location.hash = encodePath(slugs, blockId);
 }

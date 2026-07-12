@@ -9,7 +9,7 @@
 import { SvelteMap } from 'svelte/reactivity';
 import { normalizeBlock, isAvailable } from './model.js';
 
-export const ARENA_BASE = 'https://api.are.na/v3';
+const ARENA_BASE = 'https://api.are.na/v3';
 
 const defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
