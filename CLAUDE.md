@@ -17,6 +17,13 @@ build plan (`plans/`). Health & surplus work is tracked as the wayfinder map `bi
   is the sandboxed null-origin iframe, not sanitization (sanitizing would strip the markup they
   need). See `.agents/docs/ISSUES.md#I1`.
 
+## Testing
+
+- **Component tests that exercise a `$effect` (e.g. a renderer reading `window.matchMedia`)
+  must call `flushSync()` from `svelte` after `mount` before asserting** — effects run after the
+  initial render, so a synchronous query sees the pre-effect DOM. jsdom has no `matchMedia`;
+  desktop is the default and mobile is opted into by stubbing `window.matchMedia = () => ({ matches: true, addEventListener(){}, removeEventListener(){} })`. See `test/attachment.render.test.js`.
+
 ## Code invariants
 
 - **`DEPTH_CAP` is defined once, in `src/lib/router.js`, and imported everywhere it's needed
