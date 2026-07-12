@@ -44,6 +44,27 @@ describe('App skeleton', () => {
     expect(target.textContent).toContain('>ch 33');
   });
 
+  it('with several sections and an empty hash, lands on the home Cover — not the first channel (ISSUES I6)', async () => {
+    const ok = (b) => ({ ok: true, status: 200, json: async () => b });
+    global.fetch = vi.fn(async (url) => {
+      const u = String(url);
+      if (u.includes('config.json')) return ok({ title: 'Two', channels: ['arena-influences', 'second-one'] });
+      if (u.includes('/contents')) return ok(contents);
+      if (u.includes('/channels/')) return ok({ ...channel, slug: u.split('/channels/')[1].split(/[?/]/)[0] });
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+    const target = document.createElement('div');
+    document.body.appendChild(target);
+    app = mount(App, { target });
+
+    await vi.waitFor(() => {
+      // root: the two sections are the nav entries, and no channel was auto-entered
+      expect(target.querySelectorAll('.at-navlist li').length).toBe(2);
+    });
+    expect(target.querySelector('.at-cover, .at-grid')).toBeTruthy(); // the home Cover is showing
+    expect(window.location.hash).toBe(''); // stayed at root, no replaceState into a channel
+  });
+
   it('shows the configure-me empty state when no channels resolve', async () => {
     global.fetch = vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) }));
     const target = document.createElement('div');

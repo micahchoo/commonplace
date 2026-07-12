@@ -69,10 +69,11 @@
     // so it also warms channel entry; failures degrade to the typographic cover.
     collectThumbnails(arena, nav.config.channels).then((t) => (coverThumbs = t));
 
-    // Initial empty hash → auto-enter the first section (Binder's "load the first
-    // one"), reflected in the URL so state and hash never disagree.
+    // Initial empty hash: a single section auto-enters (no point covering one item);
+    // with several, stay at root so the home Cover shows as a section index. Deep-link
+    // hashes are always honored. Reflected in the URL so state and hash agree. (ISSUES I6)
     const { slugs } = decodeHash(window.location.hash);
-    if (!slugs.length && nav.sections[0] && !nav.sections[0].dead) {
+    if (!slugs.length && nav.sections.length === 1 && !nav.sections[0].dead) {
       history.replaceState(null, '', encodePath([nav.sections[0].channelSlug]));
     }
     await sync();
