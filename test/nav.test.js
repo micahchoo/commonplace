@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Nav } from '../src/lib/nav.svelte.js';
 
 const META = {
@@ -120,6 +120,21 @@ describe('Nav', () => {
     await n.jump('b');
     expect(n.landing()).toBeNull(); // only a denylisted Link → no auto-open
     expect(n.active).toBeNull();
+  });
+
+  it('surfaces a connection-fetch failure instead of swallowing it (ISSUES I4)', async () => {
+    const arena = makeArena();
+    arena.getConnections = async () => {
+      const e = new Error('rl');
+      e.rateLimited = true;
+      throw e;
+    };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const n = nav(arena);
+    await n.enter('a');
+    expect(n.connections).toEqual([]); // still degrades to a calm empty strip
+    expect(warn).toHaveBeenCalled(); // ...but a developer can see the failure
+    warn.mockRestore();
   });
 
   it('sanitizes a channel description before it can reach {@html} (ISSUES I1)', async () => {

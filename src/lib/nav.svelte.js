@@ -103,7 +103,11 @@ export class Nav {
       const { channels } = await this.#arena.getConnections(slug);
       const onPath = new Set(this.path.map((n) => n.slug));
       this.connections = channels.filter((c) => !onPath.has(c.slug)); // no cyclic affordance
-    } catch {
+    } catch (e) {
+      // Non-fatal: an empty strip is a fine degradation. But surface it so a failed
+      // fetch is distinguishable from a channel that genuinely has no connections —
+      // a swallowed 429 here otherwise reads as "no connections" forever (ISSUES I4).
+      console.warn(`connections unavailable for "${slug}"`, e?.rateLimited ? '(rate-limited)' : '', e);
       this.connections = [];
     }
   }

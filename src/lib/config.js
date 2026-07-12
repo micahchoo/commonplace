@@ -32,7 +32,11 @@ export async function resolveConfig(search = '', fetchJson = defaultFetchJson) {
   let cfg = null;
   try {
     cfg = await fetchJson('config.json');
-  } catch {
+  } catch (e) {
+    // A missing config.json is legitimate (zero-config ?channel= mode). Surface it
+    // anyway so a *malformed* config.json (parse error) isn't silently swallowed into
+    // the "configure me" empty state with no clue why (ISSUES I4).
+    console.warn('config.json not loaded — falling back (params or empty state)', e);
     cfg = null;
   }
 
