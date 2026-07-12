@@ -1,0 +1,5 @@
+{
+  "title": "AreNotebook",
+  "about": "An Are.na-powered notebook. Edit config.json to point at your own channels.",
+  "channels": ["arena-influences", "what-makes-web-like"]
+}
