@@ -3,7 +3,7 @@ import { mount, unmount } from 'svelte';
 import Stage from '../src/components/Stage.svelte';
 
 // Verifies Stage dispatches every kind to its renderer (the wiring the reviewer
-// flagged as a blocker) and that a denylisted Link overlays a card.
+// flagged as a blocker) and that a denylisted Link shows a card instead of an iframe.
 function render(block) {
   const target = document.createElement('div');
   document.body.appendChild(target);
@@ -55,16 +55,17 @@ describe('Stage dispatch', () => {
     expect(t.querySelector('iframe.at-attachment')).toBeTruthy();
   });
 
-  it('framable link → iframe, no overlay card', () => {
+  it('framable link → iframe, no card', () => {
     let t;
     ({ target: t, app } = render({ id: 5, kind: 'link', title: 'l', link: { url: 'https://example.com/x' } }));
     expect(t.querySelector('.at-link iframe')).toBeTruthy();
-    expect(t.querySelector('.overlay-layer .at-fallback')).toBeFalsy();
+    expect(t.querySelector('.at-fallback')).toBeFalsy();
   });
 
-  it('denylisted link → overlay fallback card', () => {
+  it('denylisted link → fallback card, no iframe', () => {
     let t;
     ({ target: t, app } = render({ id: 6, kind: 'link', title: 'l', link: { url: 'https://www.nytimes.com/x' } }));
-    expect(t.querySelector('.overlay-layer .at-fallback')).toBeTruthy();
+    expect(t.querySelector('.at-fallback')).toBeTruthy();
+    expect(t.querySelector('.at-link iframe')).toBeFalsy();
   });
 });
