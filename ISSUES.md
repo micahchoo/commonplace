@@ -23,12 +23,12 @@ Issues (friction) — all `done 2026-07-11`, one fix commit + seeds `## Answer` 
 - I8 single-source-DEPTH_CAP — done — `binder-726d` — nav imports from router.js; CLAUDE.md invariant
 - I9 deletion-sweep — done — `binder-7261` — deleted 3 dead files + onHash/denylist() exports; model.js kept whole (ACL, not god-module)
 
-Directions (surplus) — classify-only, `classified 2026-07-11`, verdicts deferred:
+Directions (surplus) — classified `2026-07-11`, verdicts commissioned `2026-07-12`:
 
-- D1 connectionMode-dark — classified — `binder-5717` — `ledgers/DARKDATA.md` — designed-latent ("jumped from" crumb)
-- D2 blurhash/aspectRatio-dark — classified — `binder-e7ec` — `ledgers/DARKDATA.md` — forgotten-latent
-- D3 embedType-dark — classified — `binder-6234` — `ledgers/DARKDATA.md` — designed-latent (collapsed by design)
-- D4 per/nextPage-pinned — classified — `binder-01d9` — `ledgers/HEADROOM.md` — per=convenience default; nextPage=forgotten cursor
+- D1 connectionMode — **deleted** — `binder-5717` — `ledgers/DARKDATA.md` — was unreachable (jump() never called); removed field + jump()
+- D2 blurhash/aspectRatio — **surfaced** — `binder-e7ec` — `ledgers/DARKDATA.md` — blurhash.js + Blurhash.svelte in ImageBlock/ThumbGrid; aspectRatio shapes the blur
+- D3 embedType — **surfaced** — `binder-6234` — `ledgers/DARKDATA.md` — rich embeds get a neutral frame vs the video 16:9
+- D4 per/nextPage — **parked** — `binder-01d9` — `ledgers/HEADROOM.md` — harmless defaults; revisit on a render-cap/cleanup need
 
 ## Handed to graft
 
