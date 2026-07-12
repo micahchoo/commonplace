@@ -5,6 +5,19 @@
   import FallbackCard from './FallbackCard.svelte';
   let { block } = $props();
   const html = $derived(block.embedHtml || '');
+  // Are.na embed HTML is a provider iframe with FIXED pixel dimensions (e.g. an
+  // embedly/YouTube frame at width="640" height="360"). With a bare srcdoc it renders
+  // at that intrinsic size in the top-left of our box. Wrap it in a minimal document
+  // that forces the inner frame to fill, so the video scales to the 16:9 container.
+  // NOT sanitized — the sandboxed null-origin iframe is the isolation boundary.
+  const srcdoc = $derived(
+    html &&
+      '<!doctype html><html><head><meta charset="utf-8"><style>' +
+        'html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}' +
+        'iframe,video,img,embed,object{position:absolute;inset:0;width:100%!important;' +
+        'height:100%!important;border:0;display:block}' +
+        `</style></head><body>${html}</body></html>`,
+  );
 </script>
 
 {#if html}
@@ -12,7 +25,7 @@
     <iframe
       class="at-embed"
       title={block.title}
-      srcdoc={html}
+      srcdoc={srcdoc}
       sandbox="allow-scripts allow-popups"
       allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
       referrerpolicy="strict-origin-when-cross-origin"
@@ -40,5 +53,11 @@
     max-height: 86vh;
     border: none;
     background: #000;
+  }
+  /* Top-align under the pinned bar on mobile (matches ImageBlock). */
+  @media (max-width: 768px) {
+    .at-embed-wrap {
+      align-items: flex-start;
+    }
   }
 </style>

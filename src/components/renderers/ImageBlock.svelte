@@ -23,4 +23,12 @@
     height: auto;
     object-fit: contain;
   }
+  /* On mobile, top-align under the pinned bar (content-layer is already offset by
+     --at-bar-h) instead of floating centered in the tall portrait space. */
+  @media (max-width: 768px) {
+    .at-image {
+      inset: 0 0 auto;
+      margin: 0 auto;
+    }
+  }
 </style>

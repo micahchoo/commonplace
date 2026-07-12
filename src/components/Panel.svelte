@@ -11,9 +11,24 @@
 
   // Collapsed by default on mobile; open on desktop.
   let open = $state(typeof window === 'undefined' || !window.matchMedia?.('(max-width: 768px)').matches);
+
+  // Publish the collapsed-bar height as --at-bar-h so the stage can center content in
+  // the space *below* the mobile pinned bar instead of the full viewport. Measured
+  // only while collapsed (the expanded menu overlays content anyway).
+  let panelEl;
+  $effect(() => {
+    if (!panelEl || typeof ResizeObserver === 'undefined') return;
+    const update = () => {
+      if (!open) document.documentElement.style.setProperty('--at-bar-h', `${panelEl.getBoundingClientRect().height + 8}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(panelEl);
+    return () => ro.disconnect();
+  });
 </script>
 
-<div class="at-panel" use:drag>
+<div class="at-panel" bind:this={panelEl} use:drag>
   <div class="header" data-drag-handle>
     <span class="grip" aria-hidden="true" title="Drag to move"></span>
     {#if nav.config.logo && nav.atRoot}
