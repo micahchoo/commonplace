@@ -50,6 +50,7 @@
   async function sync() {
     const { slugs, blockId } = decodeHash(window.location.hash);
     if (!sameArr(pathSlugs(), slugs)) {
+      gridMode = false; // board view is per-channel — don't persist it across a drill/jump
       await nav.loadRoot();
       for (const s of slugs) await nav.enter(s);
     }
@@ -61,7 +62,7 @@
   onMount(async () => {
     nav.config = await resolveConfig(window.location.search);
     applyTheme(nav.config.theme);
-    document.title = nav.config.title || 'AreNotebook';
+    document.title = nav.config.title || 'Commonplace';
     await nav.loadRoot();
 
     // Warm a thumbnail contact sheet for the root cover. Reuses arena's page cache,

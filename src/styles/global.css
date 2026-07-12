@@ -1,5 +1,5 @@
 /*
-  AreNotebook — global stylesheet.
+  Commonplace — global stylesheet.
   Holds (1) the signature theme tokens as CSS custom properties, and
   (2) styles for {@html}-injected content (Text, embeds), which component-scoped
   styles cannot reach. Imported once from main.js.

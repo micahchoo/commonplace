@@ -1,11 +1,17 @@
-# Binder × Are.na — the name (decided: AreNotebook)
+# Binder × Are.na — the name (decided: Commonplace)
 
 > Resolves **"Name the rebuilt tool — keep 'Binder' or rename?"** (`binder-c8c3`).
 > Chosen by the maintainer, 2026-07-11.
 
 ## Decision
 
-The rebuilt tool is **AreNotebook** (Are.na + notebook).
+The rebuilt tool is **Commonplace** — named for the [commonplace book](https://en.wikipedia.org/wiki/Commonplace_book),
+a personal book of collected quotes, clippings, and notes, which is essentially what an Are.na channel is.
+
+> **Superseded:** the name was initially **AreNotebook** (Are.na + notebook) and briefly propagated through
+> the code. The maintainer changed it to **Commonplace** during the QA pass (2026-07-11): it doesn't lean on
+> the Are.na trademark (sidesteps the caveat below) and names the "collected notebook" idea directly. The
+> AreNotebook availability/alternatives notes below are kept as history.
 
 ## Availability (verified 2026-07-11)
 
@@ -34,4 +40,4 @@ From a 32-candidate brainstorm across four lenses (binding / connective / window
 
 ## Consequence
 
-Rebrand Binder → AreNotebook (repo, docs, README, `binder-clip` assets) rides with the codebase migration.
+Rebrand Binder → Commonplace (repo, docs, README, `binder-clip` assets) rides with the codebase migration.

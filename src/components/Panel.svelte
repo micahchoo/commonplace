@@ -19,7 +19,7 @@
     {#if nav.config.logo && nav.atRoot}
       <img class="logo" src={nav.config.logo} alt="" />
     {/if}
-    <span class="title">{nav.title || 'AreNotebook'}</span>
+    <span class="title">{nav.title || 'Commonplace'}</span>
     <span class="hfill"></span>
     {#if gridAvailable}
       <button

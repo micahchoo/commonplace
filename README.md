@@ -1,4 +1,4 @@
-# AreNotebook
+# Commonplace
 
 A self-hostable, **100% static** web app that turns [Are.na](https://www.are.na)
 public channels into a navigable site — a floating, draggable menu over a
@@ -63,7 +63,7 @@ There are no auth tokens: a static deploy can't hold a secret.
 
 ## Migrating from Binder
 
-Binder's `info.json` listed a `menu` of name → URL. AreNotebook sources content from
+Binder's `info.json` listed a `menu` of name → URL. Commonplace sources content from
 Are.na instead, so the model shifts from "arbitrary links" to "channels of blocks":
 
 1. Create an Are.na channel (make it public).
@@ -91,7 +91,7 @@ that's the point of the rebuild.
 
 ## Rate limits
 
-Unauthenticated Are.na access is **30 requests/minute** (guest tier). AreNotebook stays
+Unauthenticated Are.na access is **30 requests/minute** (guest tier). Commonplace stays
 within it by caching channels in-session, loading pages lazily ("load more"), and backing
 off on `429`. Heavy, rapid drilling can still hit the ceiling; it recovers on its own.
 
@@ -121,9 +121,11 @@ npm run check      # svelte-check
 
 ## A note on the name
 
-AreNotebook is an **independent** Are.na browser. It is not affiliated with, endorsed by,
-or sponsored by Are.na — it just uses their public API. "Are.na" is a trademark of its
-owners.
+Named for the [commonplace book](https://en.wikipedia.org/wiki/Commonplace_book) — a personal
+book of collected quotes, clippings, and notes — which is more or less what an Are.na channel is.
+
+Commonplace is an **independent** Are.na browser. It is not affiliated with, endorsed by, or
+sponsored by Are.na — it just uses their public API. "Are.na" is a trademark of its owners.
 
 ## Credits & license
 

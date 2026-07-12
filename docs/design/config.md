@@ -1,6 +1,6 @@
 # Binder × Are.na — self-hosting config & theming (decided)
 
-> **Status:** a build-time decision record. The tool shipped as **AreNotebook** (V3 API); the
+> **Status:** a build-time decision record. The tool shipped as **Commonplace** (V3 API); the
 > current self-hosting guide is `README.md`. The CSS custom properties below were finalized with
 > the `--an-*` prefix (see `src/lib/theme.js`), not `--binder-*` — corrected inline. The `theme`
 > *keys* a self-hoster writes in `config.json` are unprefixed and unchanged.

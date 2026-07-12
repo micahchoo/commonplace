@@ -12,7 +12,7 @@
 {:else}
   <div class="at-cover">
     <div class="at-cover-inner">
-      <h1 class="at-cover-title">{title || 'AreNotebook'}</h1>
+      <h1 class="at-cover-title">{title || 'Commonplace'}</h1>
       {#if about}<p class="at-cover-about">{@html about}</p>{/if}
       <p class="at-cover-hint">Select a channel to begin</p>
     </div>

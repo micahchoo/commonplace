@@ -1,4 +1,4 @@
-# AreNotebook — repo instructions
+# Commonplace — repo instructions
 
 A 100% static Svelte 5 (runes) + Vite app that turns Are.na public channels into a
 navigable site. Content comes from the Are.na V3 API at runtime; there are no secrets
