@@ -5,15 +5,21 @@
   import FallbackCard from './FallbackCard.svelte';
   let { block } = $props();
   const html = $derived(block.embedHtml || '');
+  // embedType (embed.type: 'video' | 'rich') was dark — normalized, never read (ISSUES D3).
+  // Surface it to frame differently: a video is cinematic (16:9, black); a rich embed
+  // (article card, tweet, player) is NOT — force-cropping it into a black 16:9 bar looked
+  // wrong, so it gets a neutral, taller frame. Unknown/null defaults to cinematic (unchanged).
+  const isRich = $derived(block.embedType === 'rich');
+  const bg = $derived(isRich ? '#fff' : '#000');
   // Are.na embed HTML is a provider iframe with FIXED pixel dimensions (e.g. an
   // embedly/YouTube frame at width="640" height="360"). With a bare srcdoc it renders
   // at that intrinsic size in the top-left of our box. Wrap it in a minimal document
-  // that forces the inner frame to fill, so the video scales to the 16:9 container.
+  // that forces the inner frame to fill, so the media scales to our container.
   // NOT sanitized — the sandboxed null-origin iframe is the isolation boundary.
   const srcdoc = $derived(
     html &&
       '<!doctype html><html><head><meta charset="utf-8"><style>' +
-        'html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}' +
+        `html,body{margin:0;padding:0;height:100%;background:${bg};overflow:hidden}` +
         'iframe,video,img,embed,object{position:absolute;inset:0;width:100%!important;' +
         'height:100%!important;border:0;display:block}' +
         `</style></head><body>${html}</body></html>`,
@@ -24,6 +30,7 @@
   <div class="at-embed-wrap">
     <iframe
       class="at-embed"
+      class:rich={isRich}
       title={block.title}
       srcdoc={srcdoc}
       sandbox="allow-scripts allow-popups"
@@ -53,6 +60,13 @@
     max-height: 86vh;
     border: none;
     background: #000;
+  }
+  /* Rich embeds (cards, tweets, players) aren't cinematic — a narrower, taller,
+     neutral frame reads far better than a black 16:9 letterbox. */
+  .at-embed.rich {
+    width: min(92vw, 560px);
+    aspect-ratio: 3 / 4;
+    background: #fff;
   }
   /* Top-align under the pinned bar on mobile (matches ImageBlock). */
   @media (max-width: 768px) {
