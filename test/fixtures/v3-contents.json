@@ -1,0 +1,158 @@
+{
+  "data": [
+    {
+      "id": 9613792,
+      "type": "Image",
+      "base_type": "Block",
+      "title": "Sitterwerk, Dynamic Order, 2006",
+      "description": { "markdown": "When thinking about the future of publishing...", "html": "<p>When thinking about the future of publishing...</p>", "plain": "When thinking about the future of publishing..." },
+      "state": "available",
+      "visibility": "public",
+      "source": null,
+      "content": null,
+      "image": {
+        "alt_text": null,
+        "blurhash": null,
+        "width": 2121,
+        "height": 1268,
+        "src": "https://d2w9rnfcy7mm78.cloudfront.net/9613792/original_08c351c5.jpg?1606117715",
+        "aspect_ratio": 1.6727,
+        "content_type": "image/jpeg",
+        "filename": "08c351c5.jpg",
+        "small": { "src": "https://images.are.na/9613792-small.webp", "src_2x": "https://images.are.na/9613792-small@2x.webp", "width": 400, "height": 239 },
+        "medium": { "src": "https://images.are.na/9613792-medium.webp", "src_2x": "https://images.are.na/9613792-medium@2x.webp", "width": 1200, "height": 717 },
+        "large": { "src": "https://images.are.na/9613792-large.webp", "src_2x": "https://images.are.na/9613792-large@2x.webp", "width": 1800, "height": 1076 },
+        "square": { "src": "https://images.are.na/9613792-square.webp", "src_2x": "https://images.are.na/9613792-square@2x.webp", "width": 1200, "height": 717 }
+      },
+      "connection": { "id": 62105961, "position": 128 }
+    },
+    {
+      "id": 4929062,
+      "type": "Text",
+      "base_type": "Block",
+      "title": null,
+      "description": null,
+      "state": "available",
+      "visibility": "public",
+      "source": null,
+      "content": {
+        "markdown": "“Any fact becomes important when it’s connected to another.” \n\n― Umberto Eco, *Foucault’s Pendulum*",
+        "html": "<p>“Any fact becomes important when it’s connected to another.” </p>\n\n<p>― Umberto Eco, <em>Foucault’s Pendulum</em></p>",
+        "plain": "“Any fact becomes important when it’s connected to another.” \n― Umberto Eco, Foucault’s Pendulum"
+      },
+      "connection": { "id": 7664444, "position": 125 }
+    },
+    {
+      "id": 1829595,
+      "type": "Link",
+      "base_type": "Block",
+      "title": "Joan Watson",
+      "description": { "markdown": "Up From Down Under...", "html": "<p>Up From Down Under...</p>", "plain": "Up From Down Under..." },
+      "state": "available",
+      "visibility": "public",
+      "source": {
+        "url": "https://www.mica.edu/About_MICA/People/Faculty/Faculty_List_by_Last_Name/Joan_Watson.html",
+        "title": "Joan Watson",
+        "provider": { "name": "www.mica.edu", "url": "https://www.mica.edu" }
+      },
+      "image": {
+        "alt_text": null,
+        "blurhash": "LBSPX]V@~q?bIRM{M{ofNDWBM_oe",
+        "width": 1280,
+        "height": 1280,
+        "src": "https://d2w9rnfcy7mm78.cloudfront.net/1829595/original_df7291cd?1519946559",
+        "aspect_ratio": 1.0,
+        "content_type": "image/png",
+        "small": { "src": "https://images.are.na/1829595-small.webp", "width": 400, "height": 400 },
+        "large": { "src": "https://images.are.na/1829595-large.webp", "width": 1800, "height": 1800 }
+      },
+      "content": null,
+      "connection": { "id": 2276207, "position": 124 }
+    },
+    {
+      "id": 399146,
+      "type": "Embed",
+      "base_type": "Block",
+      "title": "Stanley Kubricks Boxes",
+      "description": { "markdown": "This is Stanley Kubricks Boxes by JAVARING on Vimeo.", "html": "<p>This is Stanley Kubricks Boxes by JAVARING on Vimeo.</p>", "plain": "This is Stanley Kubricks Boxes by JAVARING on Vimeo." },
+      "state": "available",
+      "visibility": "public",
+      "source": { "url": "https://vimeo.com/78314194", "title": "Stanley Kubricks Boxes", "provider": { "name": "vimeo.com", "url": "https://vimeo.com" } },
+      "embed": {
+        "url": null,
+        "type": "video",
+        "title": "Stanley Kubricks Boxes",
+        "author_name": "JAVARING",
+        "source_url": null,
+        "thumbnail_url": null,
+        "width": 600,
+        "height": 338,
+        "html": "<iframe class=\"embedly-embed\" src=\"https://cdn.embedly.com/widgets/media.html?src=https%3A%2F%2Fplayer.vimeo.com%2Fvideo%2F78314194&url=https%3A%2F%2Fvimeo.com%2F78314194&type=text%2Fhtml&schema=vimeo\" width=\"600\" height=\"338\" scrolling=\"no\" frameborder=\"0\" allowfullscreen></iframe>"
+      },
+      "image": {
+        "alt_text": null,
+        "blurhash": "LIF5~ongj]NHE4WAt7t70MWrj[xa",
+        "width": 295,
+        "height": 166,
+        "src": "https://d2w9rnfcy7mm78.cloudfront.net/399146/original_0e1abfbc?1435933261",
+        "aspect_ratio": 1.7771,
+        "content_type": "image/jpeg",
+        "small": { "src": "https://images.are.na/399146-small.webp", "width": 400, "height": 225 },
+        "large": { "src": "https://images.are.na/399146-large.webp", "width": 1800, "height": 1013 }
+      },
+      "connection": { "id": 655217, "position": 109 }
+    },
+    {
+      "id": 47069,
+      "type": "Attachment",
+      "base_type": "Block",
+      "title": "The Cognitive Style of PowerPoint",
+      "description": { "markdown": "Edward Tufte", "html": "<p>Edward Tufte</p>", "plain": "Edward Tufte" },
+      "state": "available",
+      "visibility": "public",
+      "source": null,
+      "attachment": {
+        "filename": "The_Cognitive_Style_of_PowerPoint.pdf",
+        "content_type": "application/pdf",
+        "file_size": 6003081,
+        "file_extension": "pdf",
+        "url": "https://attachments.are.na/47069/The_Cognitive_Style_of_PowerPoint.pdf?1350658772"
+      },
+      "image": {
+        "alt_text": null,
+        "blurhash": "LaOWpTkV00t7s:kCWBjZ_3ozIBjZ",
+        "width": 1024,
+        "height": 1327,
+        "src": "https://d2w9rnfcy7mm78.cloudfront.net/47069/original_92936c3c.jpg?1352564212",
+        "aspect_ratio": 0.7717,
+        "content_type": "image/jpeg",
+        "small": { "src": "https://images.are.na/47069-small.webp", "width": 309, "height": 400 },
+        "large": { "src": "https://images.are.na/47069-large.webp", "width": 1389, "height": 1800 }
+      },
+      "content": null,
+      "connection": { "id": 129330, "position": 73 }
+    },
+    {
+      "id": 9530,
+      "type": "Channel",
+      "base_type": null,
+      "slug": "adam-curtis",
+      "title": "Adam Curtis",
+      "description": null,
+      "state": "available",
+      "visibility": "public",
+      "metadata": null,
+      "counts": { "blocks": 32, "channels": 1, "contents": 33, "collaborators": 0 },
+      "connection": { "id": 381029, "position": 63 }
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "next_page": 2,
+    "prev_page": null,
+    "per_page": 100,
+    "total_pages": 2,
+    "total_count": 128,
+    "has_more_pages": true
+  }
+}

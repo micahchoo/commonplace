@@ -1,0 +1,58 @@
+/*
+  AreNotebook — global stylesheet.
+  Holds (1) the signature theme tokens as CSS custom properties, and
+  (2) styles for {@html}-injected content (Text, embeds), which component-scoped
+  styles cannot reach. Imported once from main.js.
+*/
+
+:root {
+  /* Signature Binder identity — the defaults. config.theme overrides these at boot. */
+  --an-panel-bg: #eee;
+  --an-border: blue;
+  --an-shadow-1: #fefb00; /* offset +3px */
+  --an-shadow-2: #ff0000; /* offset +6px */
+  --an-font: monospace;
+  --an-text: #717171;
+  --an-accent: #000; /* active row */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  position: relative;
+  font-family: var(--an-font);
+  color: var(--an-text);
+}
+
+/* --- {@html} content: styled globally because scoped styles don't reach it --- */
+
+.at-text {
+  color: var(--an-text);
+  font-family: var(--an-font);
+  line-height: 1.5;
+  max-width: 60ch;
+  padding: 1.5rem;
+}
+.at-text p {
+  margin: 0 0 1em;
+}
+.at-text a {
+  color: var(--an-accent);
+}
+
+/* Embeds injected via srcdoc get their own document; this styles the wrapper. */
+.at-embed {
+  width: 100%;
+  height: 100%;
+  border: none;
+}

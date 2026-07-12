@@ -1,0 +1,15 @@
+{
+  "id": 275,
+  "slug": "arena-influences",
+  "title": "Arena Influences",
+  "description": {
+    "markdown": " *We are as gods and might as well get good at it.*  - Stewart Brand\n",
+    "html": "<p><em>We are as gods and might as well get good at it.</em>  - Stewart Brand</p>",
+    "plain": " We are as gods and might as well get good at it.  - Stewart Brand"
+  },
+  "metadata": null,
+  "counts": { "blocks": 126, "channels": 2, "contents": 128, "collaborators": 9 },
+  "visibility": "closed",
+  "state": "available",
+  "type": "Channel"
+}
