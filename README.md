@@ -1,29 +1,77 @@
 # Commonplace
 
-A self-hostable, **100% static** web app that turns [Are.na](https://www.are.na)
-public channels into a navigable site — a floating, draggable menu over a
-full-viewport content pane. Point it at a channel and browse its blocks: images,
-text, links, embeds, PDFs, and nested channels, each rendered in place.
+**Turn any public Are.na channel into a self-hostable, browsable notebook** — a floating,
+draggable menu over a full-viewport reader, shipped as 100% static files with no backend and
+no secrets.
 
-It is the modern rebuild of [Binder](https://github.com/clementvalla/binder):
-same signature look (the double-shadow monospace box), but content now comes from
-Are.na at runtime instead of a hand-edited link list, and the stack is Svelte 5 +
-Vite with no jQuery.
+[**Live demo →**](https://micahchoo.github.io/commonplace/) · [Quickstart](#quickstart) · [Configuration](#configuration) · [Deploy](#deploy)
 
-## Quick start
+![A Commonplace channel: the draggable index panel over a rendered block](docs/screenshots/channel-view.jpg)
+
+Point it at a channel and browse its blocks — images, text, links, embeds, PDFs, and nested
+channels — each rendered in place. It's a modern rebuild of
+[Binder](https://github.com/clementvalla/binder): the same signature look (the double-shadow
+monospace box), but content now comes from Are.na at runtime instead of a hand-edited link
+list, and the stack is Svelte 5 + Vite with no jQuery.
+
+Named for the [commonplace book](https://en.wikipedia.org/wiki/Commonplace_book) — a personal
+book of collected quotes and clippings, which is essentially what an Are.na channel is.
+
+## Features
+
+- **Runtime, not build-time.** Edit `config.json`, reload — no rebuild to change what it shows.
+- **Every block type rendered in place** — images, sanitized text, sandboxed embeds, inline
+  PDFs, framed links, and nested-channel drill-down with a connections strip.
+- **Contact-sheet grid view** — see a whole channel as a wall of thumbnails; click one to open it.
+- **Deep-linkable** — the URL hash encodes the drill path and the open block, so every view is
+  shareable and the back button behaves.
+- **Signature draggable UI** — the floating monospace box with its yellow/red double shadow;
+  collapses to a pinned bar on mobile.
+- **100% static & self-hostable** — deploy the `dist/` folder anywhere. No server, no auth
+  tokens, no secrets (a static build can't hold one).
+
+## Quickstart
 
 ```bash
+git clone https://github.com/micahchoo/commonplace.git
+cd commonplace
 npm install
-npm run dev        # local dev server
-npm run build      # → dist/ (static files, deploy anywhere)
+npm run dev          # → http://localhost:5173
 ```
 
-Edit **`config.json`** to point at your own Are.na channels, then reload. No rebuild
-needed — `config.json` is fetched at runtime.
+It boots on the sample channel in `public/config.json`. Point it at your own by editing that
+file (see [Configuration](#configuration)) — or skip config entirely and pass a channel in the URL:
 
-## `config.json`
+```
+http://localhost:5173/?channel=your-channel-slug
+```
 
-Dropped next to `index.html`:
+Only **public** channels work (marked *public* or *closed* on Are.na — not *private*). There
+are no auth tokens: a static deploy can't keep a secret.
+
+## How it works
+
+<table>
+<tr>
+<td width="62%"><img src="docs/screenshots/cover-grid.jpg" alt="The home view: a contact-sheet grid of a channel's thumbnails"></td>
+<td width="38%"><img src="docs/screenshots/mobile.jpg" alt="Commonplace on mobile: the menu collapses to a pinned bar"></td>
+</tr>
+</table>
+
+- The site's **sections** are the channels you configure. Each is a numbered index of its
+  blocks; a nested channel shows up as a `>ch N` drill node, and a connections strip offers
+  sideways jumps to related channels.
+- **Selecting a block** renders it in the full-viewport pane by type: `<img>` for images,
+  sanitized HTML for text, a sandboxed embed for media, an inline viewer / download for PDFs,
+  and an iframe for links.
+- The **home view** and the per-channel **grid toggle** show a contact sheet of thumbnails —
+  click any tile to open that block.
+- Some sites refuse to be framed (NYT, X, GitHub, …). Those show a preview card with an
+  **"open in new tab ▸"** link instead of a blank frame; every link view keeps that escape hatch.
+
+## Configuration
+
+Drop a `config.json` next to `index.html` (it's fetched at runtime, so no rebuild is needed):
 
 ```json
 {
@@ -51,83 +99,65 @@ Dropped next to `index.html`:
 | `logo` | no | Small mark in the header. |
 | `theme` | no | Overrides the signature look; omit for the classic Binder style. |
 
-**Zero-config mode:** skip `config.json` entirely and open the built app with a URL
-parameter — `?channel=reading-room` or `?channels=a,b,c`. Handy for a hosted build
-anyone can point at their own channel. This mode sets **only the channels** — `title`,
-`about`, `logo`, and `theme` come from `config.json`, so a params-only load shows the
-default (classic Binder) look with the channels' own titles. For branding or a custom
-theme, use `config.json`.
+**Zero-config mode:** skip `config.json` and open the built app with a URL parameter —
+`?channel=reading-room` or `?channels=a,b,c`. Handy for a hosted build anyone can point at
+their own channel. This sets **only the channels**; `title`, `about`, `logo`, and `theme` come
+from `config.json`, so a params-only load uses the default look with the channels' own titles.
 
-Only **public** channels work (channels marked *public* or *closed* — not *private*).
-There are no auth tokens: a static deploy can't hold a secret.
+<details>
+<summary>Migrating from Binder</summary>
 
-## Migrating from Binder
-
-Binder's `info.json` listed a `menu` of name → URL. Commonplace sources content from
-Are.na instead, so the model shifts from "arbitrary links" to "channels of blocks":
+Binder's `info.json` listed a `menu` of name → URL. Commonplace sources content from Are.na
+instead, so the model shifts from "arbitrary links" to "channels of blocks":
 
 1. Create an Are.na channel (make it public).
-2. Add your links, images, and notes to it as blocks — each old menu URL becomes a
-   Link block.
-3. List the channel slug(s) in `config.json` under `channels`. Several old sections →
-   several channels.
+2. Add your links, images, and notes to it as blocks — each old menu URL becomes a Link block.
+3. List the channel slug(s) in `config.json` under `channels`. Several old sections → several channels.
 
-`title` / `about` / `logo` carry over unchanged; `menu` has no direct equivalent —
-that's the point of the rebuild.
+`title` / `about` / `logo` carry over unchanged; `menu` has no direct equivalent — that's the
+point of the rebuild.
 
-## How it works
-
-- The site's **sections** are the configured channels. Each is a numbered index of its
-  blocks; a nested channel appears as a `>ch N` drill node; a `<-> connected` strip
-  offers sideways jumps to related channels.
-- Selecting a block renders it in the full-viewport pane by type: `<img>` for images,
-  sanitized HTML for text, a sandboxed embed for media, a PDF viewer / download for
-  attachments, and an iframe for links.
-- Some sites refuse to be framed (NYT, Twitter/X, GitHub, …). Those show a preview card
-  with an **"open in new tab ▸"** link instead of a blank frame; every link view keeps
-  that escape hatch.
-- Deep links work: the URL hash encodes the drill path and the open block's id, so any
-  view is shareable and the back button behaves.
-
-## Rate limits
-
-Unauthenticated Are.na access is **30 requests/minute** (guest tier). Commonplace stays
-within it by caching channels in-session, loading pages lazily ("load more"), and backing
-off on `429`. Heavy, rapid drilling can still hit the ceiling; it recovers on its own.
+</details>
 
 ## Deploy
 
-`npm run build` emits a static `dist/` — `index.html` plus hashed JS/CSS. Drop it on any
-static host:
+`npm run build` emits a static `dist/` — `index.html` plus hashed JS/CSS. Because
+`vite.config.js` sets `base: './'`, asset paths are relative and the app works under any subpath.
 
-- **GitHub Pages / any subpath host:** works as-is. Assets use relative paths
-  (`base: './'` in `vite.config.js`), so a project page at `user.github.io/repo/` resolves
-  correctly.
-- **Netlify / Vercel / S3 / nginx:** serve `dist/` as static files.
+- **GitHub Pages.** This repo ships a workflow ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml))
+  that builds and deploys on every push to `master`. Fork it, enable Pages (source: GitHub
+  Actions), and your notebook is live at `https://<you>.github.io/<repo>/`.
+- **Netlify / Vercel / S3 / nginx.** Serve `dist/` as static files.
 
-`npm run preview` serves the production build locally to smoke-test before deploying.
+```bash
+npm run build        # → dist/
+npm run preview      # serve the production build locally to smoke-test
+```
+
+> [!NOTE]
+> Unauthenticated Are.na access is **30 requests/minute** (guest tier). Commonplace stays
+> within it by caching channels in-session, paginating lazily ("load more"), and backing off
+> on `429`. Heavy, rapid drilling can still hit the ceiling; it recovers on its own.
 
 ## Development
 
 ```bash
-npm test           # unit + component tests (Vitest + jsdom)
-npm run check      # svelte-check
+npm test             # unit + component tests (Vitest + jsdom)
+npm run check        # svelte-check
 ```
 
-- Stack: Svelte 5 (runes) + Vite, DOMPurify for text sanitization, native Pointer Events
+- **Stack:** Svelte 5 (runes) + Vite, DOMPurify for text sanitization, native Pointer Events
   for the draggable panel.
-- The Are.na V3 field map lives in `docs/research/arena-v3-field-confirmation.md`; the
-  design decisions behind the rebuild are in `docs/design/`.
+- **Architecture & decisions:** [`docs/design/`](docs/design/). The Are.na V3 field map is in
+  [`docs/research/arena-v3-field-confirmation.md`](docs/research/arena-v3-field-confirmation.md).
+- **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## A note on the name
-
-Named for the [commonplace book](https://en.wikipedia.org/wiki/Commonplace_book) — a personal
-book of collected quotes, clippings, and notes — which is more or less what an Are.na channel is.
 
 Commonplace is an **independent** Are.na browser. It is not affiliated with, endorsed by, or
 sponsored by Are.na — it just uses their public API. "Are.na" is a trademark of its owners.
 
 ## Credits & license
 
-A rebuild of [Binder](https://github.com/clementvalla/binder) by Clement Valla. Inherits
-the upstream project's license.
+A rebuild of [Binder](https://github.com/clementvalla/binder) by Clement Valla. Inherits the
+upstream project's license.
