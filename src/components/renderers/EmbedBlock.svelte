@@ -8,23 +8,37 @@
 </script>
 
 {#if html}
-  <iframe
-    class="at-embed"
-    title={block.title}
-    srcdoc={html}
-    sandbox="allow-scripts allow-popups"
-    allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-    referrerpolicy="strict-origin-when-cross-origin"
-    loading="lazy"
-  ></iframe>
+  <div class="at-embed-wrap">
+    <iframe
+      class="at-embed"
+      title={block.title}
+      srcdoc={html}
+      sandbox="allow-scripts allow-popups"
+      allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+      referrerpolicy="strict-origin-when-cross-origin"
+      loading="lazy"
+    ></iframe>
+  </div>
 {:else}
   <FallbackCard {block} />
 {/if}
 
 <style>
+  /* Center a bounded 16:9 frame in the viewport rather than filling it top-left
+     (which put provider content behind the docked menu). */
+  .at-embed-wrap {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2vmin;
+  }
   .at-embed {
-    width: 100%;
-    height: 100%;
+    width: min(92vw, 960px);
+    aspect-ratio: 16 / 9;
+    max-height: 86vh;
     border: none;
+    background: #000;
   }
 </style>

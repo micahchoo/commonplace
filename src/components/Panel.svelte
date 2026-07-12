@@ -1,12 +1,13 @@
 <script>
   // The signature draggable box: per-level header (site identity at root, entered
-  // channel when drilled), breadcrumb, nav list, connections strip, mobile hamburger.
+  // channel when drilled), breadcrumb, nav list, connections strip, grid toggle,
+  // and the minimize/maximize control.
   import { drag } from '../lib/drag.js';
   import NavList from './NavList.svelte';
   import Breadcrumb from './Breadcrumb.svelte';
   import ConnectionsStrip from './ConnectionsStrip.svelte';
 
-  let { nav, onselect, onnavigate, onjump, onloadmore } = $props();
+  let { nav, gridMode = false, gridAvailable = false, ongrid, onselect, onnavigate, onjump, onloadmore } = $props();
 
   // Collapsed by default on mobile; open on desktop.
   let open = $state(typeof window === 'undefined' || !window.matchMedia?.('(max-width: 768px)').matches);
@@ -14,13 +15,29 @@
 
 <div class="at-panel" use:drag>
   <div class="header" data-drag-handle>
-    <button class="hamburger" type="button" aria-label="Toggle menu" onclick={() => (open = !open)}>
-      <span></span><span></span><span></span>
-    </button>
+    <span class="grip" aria-hidden="true" title="Drag to move"></span>
     {#if nav.config.logo && nav.atRoot}
       <img class="logo" src={nav.config.logo} alt="" />
     {/if}
     <span class="title">{nav.title || 'AreNotebook'}</span>
+    <span class="hfill"></span>
+    {#if gridAvailable}
+      <button
+        class="viewtoggle"
+        class:on={gridMode}
+        type="button"
+        aria-label="Grid view"
+        aria-pressed={gridMode}
+        onclick={ongrid}
+      >grid</button>
+    {/if}
+    <button
+      class="toggle"
+      type="button"
+      aria-label={open ? 'Minimize menu' : 'Maximize menu'}
+      aria-expanded={open}
+      onclick={() => (open = !open)}
+    >{open ? '–' : '+'}</button>
   </div>
 
   {#if open}
@@ -47,6 +64,7 @@
     gap: 8px;
     cursor: move;
     margin-bottom: 6px;
+    flex: 0 0 auto; /* pinned; only .body scrolls */
   }
   .title {
     color: var(--an-accent);
@@ -55,21 +73,53 @@
     height: 20px;
     width: auto;
   }
-  .hamburger {
-    display: none;
-    flex-direction: column;
-    justify-content: space-between;
-    width: 22px;
-    height: 16px;
-    padding: 0;
+  /* Clear drag affordance — a CSS-drawn dot grip, so it renders in any font. */
+  .grip {
+    flex: 0 0 auto;
+    width: 9px;
+    height: 15px;
+    cursor: move;
+    background-image: radial-gradient(currentColor 1px, transparent 1.3px);
+    background-size: 4px 4px;
+    background-position: center;
+    opacity: 0.5;
+  }
+  .hfill {
+    flex: 1 1 auto; /* pushes the view controls to the right edge */
+  }
+  /* Toggle the current channel between single-block and grid (board) view. */
+  .viewtoggle {
+    flex: 0 0 auto;
+    height: 20px;
+    padding: 0 6px;
     background: none;
-    border: none;
+    border: 1px solid var(--an-border);
+    color: var(--an-accent);
+    font: inherit;
+    font-size: 12px;
+    line-height: 1;
     cursor: pointer;
   }
-  .hamburger span {
-    display: block;
-    height: 2px;
+  .viewtoggle.on {
     background: var(--an-accent);
+    color: var(--an-panel-bg);
+  }
+  /* Minimize (–) / maximize (+) the body; always visible, desktop and mobile. */
+  .toggle {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: none;
+    border: 1px solid var(--an-border);
+    color: var(--an-accent);
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .body {
+    overflow-y: auto;
+    min-height: 0; /* lets the flex child scroll instead of overflowing the box */
   }
   .about {
     font-size: 13px;
@@ -101,8 +151,8 @@
     .header {
       cursor: default;
     }
-    .hamburger {
-      display: flex;
+    .grip {
+      display: none; /* drag is disabled ≤768px */
     }
   }
 </style>

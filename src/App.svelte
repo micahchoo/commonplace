@@ -6,20 +6,44 @@
   import { resolveConfig } from './lib/config.js';
   import { applyTheme } from './lib/theme.js';
   import { Nav } from './lib/nav.svelte.js';
+  import { arena } from './lib/arena.js';
+  import { collectThumbnails } from './lib/covers.js';
   import { decodeHash, encodePath, navigate } from './lib/router.js';
   import Panel from './components/Panel.svelte';
   import Stage from './components/Stage.svelte';
+  import Cover from './components/Cover.svelte';
+  import ThumbGrid from './components/ThumbGrid.svelte';
   import EmptyState from './components/EmptyState.svelte';
 
-  const nav = new Nav();
+  const nav = new Nav(); // uses the shared `arena` singleton by default
   let booted = $state(false);
+  let coverThumbs = $state([]); // root-cover contact sheet
+  let gridMode = $state(false); // in-channel grid (board) view toggle
 
   const pathSlugs = () => nav.path.map((n) => n.slug);
   const sameArr = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 
+  // The loaded blocks of the current channel that carry an image, as grid thumbs.
+  const channelThumbs = $derived(
+    nav.atRoot
+      ? []
+      : (nav.blocks || [])
+          .filter((b) => b.image?.thumb || b.image?.src)
+          .map((b) => ({
+            id: b.id,
+            slug: pathSlugs().at(-1) || '',
+            thumb: b.image.thumb || b.image.src,
+            title: b.title,
+          })),
+  );
+  const gridAvailable = $derived(!nav.atRoot && channelThumbs.length > 0);
+
   function select(b) {
     if (b.kind === 'channel') navigate([...pathSlugs(), b.channelSlug]);
-    else navigate(pathSlugs(), b.id);
+    else {
+      gridMode = false; // picking a specific block drops into its single view
+      navigate(pathSlugs(), b.id);
+    }
   }
 
   // The sole place nav mutates from the URL: reconcile nav to the hash.
@@ -40,6 +64,10 @@
     document.title = nav.config.title || 'AreNotebook';
     await nav.loadRoot();
 
+    // Warm a thumbnail contact sheet for the root cover. Reuses arena's page cache,
+    // so it also warms channel entry; failures degrade to the typographic cover.
+    collectThumbnails(arena, nav.config.channels).then((t) => (coverThumbs = t));
+
     // Initial empty hash → auto-enter the first section (Binder's "load the first
     // one"), reflected in the URL so state and hash never disagree.
     const { slugs } = decodeHash(window.location.hash);
@@ -55,6 +83,25 @@
 
 <Stage block={nav.active} />
 
+{#if booted && nav.config.channels.length}
+  {#if nav.atRoot && !nav.active}
+    <Cover
+      title={nav.title}
+      about={nav.about}
+      thumbs={coverThumbs}
+      onpick={(t) => navigate([t.slug], t.id)}
+    />
+  {:else if gridMode && gridAvailable}
+    <ThumbGrid
+      thumbs={channelThumbs}
+      onpick={(t) => {
+        gridMode = false;
+        navigate(pathSlugs(), t.id);
+      }}
+    />
+  {/if}
+{/if}
+
 {#if !booted}
   <div class="at-panel at-skeleton"><p>Loading…</p></div>
 {:else if !nav.config.channels.length}
@@ -62,6 +109,9 @@
 {:else}
   <Panel
     {nav}
+    {gridMode}
+    {gridAvailable}
+    ongrid={() => (gridMode = !gridMode)}
     onselect={select}
     onnavigate={(depth) => navigate(pathSlugs().slice(0, depth))}
     onjump={(slug) => navigate([slug])}

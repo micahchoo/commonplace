@@ -5,17 +5,19 @@
   const clean = $derived(sanitizeHtml(block.html));
 </script>
 
-<div class="at-text at-text-wrap">
-  {@html clean}
+<div class="at-text-wrap">
+  <div class="at-text">
+    {@html clean}
+  </div>
 </div>
 
 <style>
+  /* Full-viewport flex box; the inner .at-text (global) is the readable column,
+     centered via its own margin:auto so it never hides behind the docked menu. */
   .at-text-wrap {
     position: absolute;
     inset: 0;
     overflow: auto;
     display: flex;
-    align-items: center;
-    justify-content: center;
   }
 </style>

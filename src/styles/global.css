@@ -49,6 +49,12 @@ body {
   letter-spacing: -0.3px;
   color: var(--an-text);
   max-width: 42ch;
+  /* Bound to the space below `top` so a long block list scrolls inside the box
+     (the body scrolls; the drag-handle header stays pinned) instead of running
+     off the bottom of the viewport. */
+  display: flex;
+  flex-direction: column;
+  max-height: 55vh;
 }
 
 @media (max-width: 768px) {
@@ -57,6 +63,7 @@ body {
     right: 2px;
     top: 2px;
     max-width: none;
+    max-height: calc(100vh - 8px);
   }
 }
 
@@ -68,17 +75,14 @@ body {
   line-height: 1.5;
   max-width: 60ch;
   padding: 1.5rem;
+  /* margin:auto centers the readable column in its full-viewport flex wrapper on
+     both axes without clipping the top when the text overflows (the align-items
+     centering trap). Keeps text off the left-docked menu. */
+  margin: auto;
 }
 .at-text p {
   margin: 0 0 1em;
 }
 .at-text a {
   color: var(--an-accent);
-}
-
-/* Embeds injected via srcdoc get their own document; this styles the wrapper. */
-.at-embed {
-  width: 100%;
-  height: 100%;
-  border: none;
 }
