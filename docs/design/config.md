@@ -1,5 +1,10 @@
 # Binder × Are.na — self-hosting config & theming (decided)
 
+> **Status:** a build-time decision record. The tool shipped as **AreNotebook** (V3 API); the
+> current self-hosting guide is `README.md`. The CSS custom properties below were finalized with
+> the `--an-*` prefix (see `src/lib/theme.js`), not `--binder-*` — corrected inline. The `theme`
+> *keys* a self-hoster writes in `config.json` are unprefixed and unchanged.
+
 > Resolves **"Design the self-hosting config: site meta, channel list & theming"** (`binder-5299`).
 > Builds on the organizing model (a site = ordered channel slugs), the framework (Svelte 5 + Vite),
 > and the API decision (Are.na V3). Theming fork settled by grilling on 2026-07-11.
@@ -47,13 +52,13 @@ The signature identity lives as CSS custom properties on `:root` in a **global**
 
 | Token | Default (signature) |
 |---|---|
-| `--binder-panel-bg` | `#eee` |
-| `--binder-border` | `blue` |
-| `--binder-shadow-1` | `#fefb00` (offset +3px) |
-| `--binder-shadow-2` | `#ff0000` (offset +6px) |
-| `--binder-font` | `monospace` |
-| `--binder-text` | `#717171` |
-| `--binder-accent` | `#000` (active row) |
+| `--an-panel-bg` | `#eee` |
+| `--an-border` | `blue` |
+| `--an-shadow-1` | `#fefb00` (offset +3px) |
+| `--an-shadow-2` | `#ff0000` (offset +6px) |
+| `--an-font` | `monospace` |
+| `--an-text` | `#717171` |
+| `--an-accent` | `#000` (active row) |
 
 At boot, `config.theme` sets these via `documentElement.style.setProperty`. Omitting `theme` yields the exact classic Binder look; overriding any subset restyles it. Values are **validated to expected CSS shapes** before injection — `config.json` is the self-hoster's own, same-origin file (trusted, not a security boundary), but shape-checking avoids silent layout breakage.
 
