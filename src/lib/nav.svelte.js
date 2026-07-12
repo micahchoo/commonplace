@@ -18,9 +18,8 @@ export class Nav {
   path = $state([]); // [{slug, title, description}] — the drill stack (root is implicit [])
   blocks = $state([]); // current node's entries (sections at root, else NormBlocks)
   active = $state(null); // open NormBlock
-  connections = $state([]); // [{slug,title}] sideways jumps
+  connections = $state([]); // [{slug,title}] sideways jumps (navigated via enter, like any drill)
   sections = $state([]); // root entries: channel-kind blocks with {dead}
-  connectionMode = $state(false); // true when the current node was reached via a jump
   loading = $state(false);
   error = $state(null);
   hasMore = $state(false);
@@ -71,7 +70,6 @@ export class Nav {
     this.path = [];
     this.blocks = this.sections;
     this.connections = [];
-    this.connectionMode = false;
     this.active = null;
     this.loading = false;
   }
@@ -119,7 +117,6 @@ export class Nav {
     const node = await this.#loadChannel(slug, title);
     this.path = [...this.path, node];
     this.active = null;
-    this.connectionMode = false;
     await this.#loadConnections(slug);
   }
 
@@ -131,15 +128,6 @@ export class Nav {
     await this.#loadChannel(target.slug, target.title);
     this.active = null;
     await this.#loadConnections(target.slug);
-  }
-
-  /** Sideways jump: a FRESH breadcrumb rooted at the target (sideways ≠ child). */
-  async jump(slug, title) {
-    const node = await this.#loadChannel(slug, title);
-    this.path = [node];
-    this.active = null;
-    this.connectionMode = true;
-    await this.#loadConnections(slug);
   }
 
   /** Lazy pagination — page 1 is free; more on demand. */

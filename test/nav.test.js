@@ -77,14 +77,6 @@ describe('Nav', () => {
     expect(n.path.map((p) => p.slug)).toEqual(['a']);
   });
 
-  it('jump reroots the breadcrumb (fresh, not appended)', async () => {
-    const n = nav(makeArena());
-    await n.enter('a');
-    await n.jump('b');
-    expect(n.path.map((p) => p.slug)).toEqual(['b']);
-    expect(n.connectionMode).toBe(true);
-  });
-
   it('connections hide channels already on the path', async () => {
     const n = nav(makeArena([{ slug: 'a', title: 'A' }, { slug: 'x', title: 'X' }]));
     await n.enter('a');
@@ -117,7 +109,7 @@ describe('Nav', () => {
     const n = nav(makeArena());
     await n.enter('a');
     expect(n.landing()?.id).toBe(11); // the Image
-    await n.jump('b');
+    await n.enter('b');
     expect(n.landing()).toBeNull(); // only a denylisted Link → no auto-open
     expect(n.active).toBeNull();
   });
