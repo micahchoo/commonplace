@@ -108,20 +108,18 @@ usable `embedHtml` falls to the **fallback card**.
 Three cooperating layers, no unreliable runtime probe:
 
 **1. The denylist** ([`src/lib/denylist.js`](../../src/lib/denylist.js)) is a shipped
-`Set` matched on the **exact hostname**, not the registrable domain: `docs.google.com`
-frames while `google.com` search doesn't, so an eTLD+1 match can't express the
-distinction. `isDenylisted(url)` returns true when `new URL(url).hostname` is in the
-set. Current seeds include `nytimes.com`, `twitter.com`/`x.com`, `facebook.com`,
-`instagram.com`, `github.com`, `linkedin.com`, `reddit.com`, and `youtube.com` (watch
-pages refuse; embeds arrive via the `embed` kind, not `link`), each with common
-`www.` variants. It's a living file — staleness is acceptable because the escape hatch
-covers any miss.
+list matched on the **registrable domain and its subdomains** (`h === d || h.endsWith('.' + d)`).
+Per-user hosts like `someone.wordpress.com` or `writer.substack.com` all refuse framing, so an
+exact-hostname list can't enumerate them — a domain match is what catches them. It covers social
+platforms, big publishers, and hosted-blog domains (`wordpress.com`, `substack.com`, `medium.com`,
+`nytimes.com`, `x.com`, `github.com`, `youtube.com` — whose watch pages refuse; video arrives via
+the `embed` kind, not `link`). It's a living file — staleness is acceptable because the escape
+hatch covers any miss, and you can add domains.
 
-**2. The escape hatch** — `LinkBlock` always renders an *"open in new tab ▸"* anchor,
-which grows prominent ~2 s after the frame mounts. The nudge is **time-based**, not
-`onload`-based, because `load` fires even on blocked frames. This is what recovers a
-denylist *miss*: an unlisted refuser shows a blank frame, and the visible hatch is the
-way out.
+**2. The escape hatch** — `LinkBlock` always renders a visible *"open in new tab ▸"* anchor
+(bottom-right). A static app can't tell a successfully-framed page from a blocked one — `load`
+fires either way — so the hatch is always present rather than triggered on failure. This is what
+recovers a denylist *miss*: an unlisted refuser shows a blank frame, and the hatch is the way out.
 
 **3. The fallback card** ([`FallbackCard.svelte`](../../src/components/renderers/FallbackCard.svelte))
 shows `link.thumb` (falling back to `image.thumb`/`image.src`), the derived `title`,

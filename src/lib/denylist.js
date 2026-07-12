@@ -1,26 +1,37 @@
 /**
- * A static app cannot detect a framing refusal, so this shipped, full-hostname
- * denylist is the primary defense against blank frames. Matched on the exact
- * hostname (not eTLD+1) — docs.google.com frames while google.com search doesn't,
- * so a registrable-domain match can't express it. Living file; the always-present
- * escape hatch covers any miss. Seeded from docs/design/embedding.md.
+ * A static app cannot detect a framing refusal at runtime — X-Frame-Options / CSP
+ * `frame-ancestors` headers aren't readable cross-origin, and an iframe's `load` event
+ * fires even for blocked frames. So this curated denylist of known refusers is what
+ * routes a link to a preview card instead of a blank iframe. Everything not listed is
+ * framed inline.
+ *
+ * Matched on the **registrable domain and its subdomains** (`endsWith('.' + domain)`),
+ * because per-user hosts like `someone.wordpress.com` all refuse — an exact-hostname
+ * list can't enumerate them. It can't be exhaustive; the always-present "open in new
+ * tab" escape hatch covers any miss, and you can add domains here.
  */
-const DENY = new Set([
-  'nytimes.com', 'www.nytimes.com',
-  'twitter.com', 'www.twitter.com', 'x.com', 'www.x.com',
-  'facebook.com', 'www.facebook.com',
-  'instagram.com', 'www.instagram.com',
-  'github.com', 'www.github.com',
-  'linkedin.com', 'www.linkedin.com',
-  'reddit.com', 'www.reddit.com', 'old.reddit.com',
-  'youtube.com', 'www.youtube.com', // watch pages refuse; embeds arrive via Embed, not Link
-]);
+const DENY = [
+  // Social — refuse framing site-wide.
+  'twitter.com', 'x.com', 'facebook.com', 'instagram.com', 'threads.net',
+  'linkedin.com', 'reddit.com', 'pinterest.com', 'tiktok.com', 'tumblr.com',
+  // Media/app platforms (video arrives as an Embed block, not a Link).
+  'youtube.com', 'youtu.be', 'twitch.tv', 'spotify.com', 'figma.com',
+  // Dev.
+  'github.com', 'gitlab.com', 'stackoverflow.com',
+  // News / publishing with X-Frame-Options.
+  'nytimes.com', 'wsj.com', 'washingtonpost.com', 'theguardian.com', 'bbc.com',
+  'bloomberg.com', 'ft.com', 'economist.com', 'newyorker.com', 'medium.com',
+  'e-flux.com',
+  // Hosted blogs / apps that refuse (per-user subdomains → registrable-domain match).
+  'wordpress.com', 'substack.com', 'notion.so', 'notion.site', 'quora.com', 'amazon.com',
+];
 
-/** True when the URL's hostname is a known framing-refuser. */
+/** True when the URL's host is a known framing-refuser (its registrable domain or a subdomain). */
 export function isDenylisted(url) {
   if (!url) return false;
   try {
-    return DENY.has(new URL(url).hostname.toLowerCase());
+    const h = new URL(url).hostname.toLowerCase();
+    return DENY.some((d) => h === d || h.endsWith('.' + d));
   } catch {
     return false;
   }

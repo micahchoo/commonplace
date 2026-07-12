@@ -3,16 +3,17 @@
   import TextBlock from './renderers/TextBlock.svelte';
   import EmbedBlock from './renderers/EmbedBlock.svelte';
   import AttachmentBlock from './renderers/AttachmentBlock.svelte';
+  import LinkBlock from './renderers/LinkBlock.svelte';
   import FallbackCard from './renderers/FallbackCard.svelte';
+  import { isDenylisted } from '../lib/denylist.js';
 
   let { block } = $props();
 
-  // Links render as a preview card, never a blind iframe: a static app can't detect
-  // X-Frame-Options / CSP framing refusals, and most sites refuse — a bare iframe
-  // just paints blank. The card (thumbnail + title + open-in-new-tab) always renders,
-  // and shows on the overlay layer so the previously-painted content stays behind it
-  // (storyboard Frame 7).
-  const cardOnly = (b) => b && b.kind === 'link';
+  // Links are framed inline by default; only sites KNOWN to refuse framing (the
+  // denylist) fall back to a card, since a static app can't detect a framing refusal
+  // at runtime. A denylisted link shows its card on the overlay layer while the
+  // previously-painted content stays behind it (storyboard Frame 7).
+  const cardOnly = (b) => b && b.kind === 'link' && isDenylisted(b.link?.url);
   const isOverlay = $derived(cardOnly(block));
 
   let lastInline = $state(null);
@@ -34,6 +35,8 @@
         <EmbedBlock block={bg} />
       {:else if bg.kind === 'attachment'}
         <AttachmentBlock block={bg} />
+      {:else if bg.kind === 'link'}
+        <LinkBlock block={bg} />
       {:else}
         <FallbackCard block={bg} />
       {/if}

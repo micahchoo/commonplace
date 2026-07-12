@@ -55,11 +55,11 @@ describe('Stage dispatch', () => {
     expect(t.querySelector('iframe.at-attachment')).toBeTruthy();
   });
 
-  it('link → preview card, not a blind iframe (framing is unreliable statically)', () => {
+  it('framable link → iframe, no overlay card', () => {
     let t;
     ({ target: t, app } = render({ id: 5, kind: 'link', title: 'l', link: { url: 'https://example.com/x' } }));
-    expect(t.querySelector('.overlay-layer .at-fallback')).toBeTruthy();
-    expect(t.querySelector('.at-link iframe')).toBeFalsy();
+    expect(t.querySelector('.at-link iframe')).toBeTruthy();
+    expect(t.querySelector('.overlay-layer .at-fallback')).toBeFalsy();
   });
 
   it('denylisted link → overlay fallback card', () => {
