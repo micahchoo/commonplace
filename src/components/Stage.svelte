@@ -1,15 +1,19 @@
 <script>
   import ImageBlock from './renderers/ImageBlock.svelte';
+  import TextBlock from './renderers/TextBlock.svelte';
+  import EmbedBlock from './renderers/EmbedBlock.svelte';
+  import AttachmentBlock from './renderers/AttachmentBlock.svelte';
   import LinkBlock from './renderers/LinkBlock.svelte';
   import FallbackCard from './renderers/FallbackCard.svelte';
+  import { isDenylisted } from '../lib/denylist.js';
 
   let { block } = $props();
 
-  // Two layers: a content layer (the inline renderer) and an overlay layer.
-  // `overlay` blocks (a denylisted Link → card) keep the previously-painted
-  // content behind them (storyboard Frame 7). Task 6 wires the mechanism;
-  // Task 12 sets the real overlay condition once the denylist exists.
-  const isOverlay = $derived(false);
+  // A denylisted Link won't frame → show a FallbackCard on the overlay layer while
+  // the previously-painted content stays behind it (storyboard Frame 7). Stage owns
+  // this decision so LinkBlock stays a pure framing renderer.
+  const cardOnly = (b) => b && b.kind === 'link' && isDenylisted(b.link?.url);
+  const isOverlay = $derived(cardOnly(block));
 
   let lastInline = $state(null);
   $effect(() => {
@@ -24,12 +28,16 @@
     {#if bg}
       {#if bg.kind === 'image'}
         <ImageBlock block={bg} />
+      {:else if bg.kind === 'text'}
+        <TextBlock block={bg} />
+      {:else if bg.kind === 'embed'}
+        <EmbedBlock block={bg} />
+      {:else if bg.kind === 'attachment'}
+        <AttachmentBlock block={bg} />
       {:else if bg.kind === 'link'}
         <LinkBlock block={bg} />
-      {:else if bg.kind === 'unknown'}
-        <FallbackCard block={bg} />
       {:else}
-        <div class="stub">{bg.title} — “{bg.kind}” renderer coming soon</div>
+        <FallbackCard block={bg} />
       {/if}
     {/if}
   </div>
@@ -58,13 +66,5 @@
   }
   .overlay-layer :global(.at-fallback) {
     pointer-events: auto;
-  }
-  .stub {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    font: 14px/1.4 var(--an-font);
-    color: var(--an-text);
   }
 </style>
