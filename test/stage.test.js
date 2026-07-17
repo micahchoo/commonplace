@@ -55,17 +55,17 @@ describe('Stage dispatch', () => {
     expect(t.querySelector('iframe.at-attachment')).toBeTruthy();
   });
 
-  it('framable link → iframe, no card', () => {
+  it('framable link → iframe framed on the stage, card alongside', () => {
     let t;
     ({ target: t, app } = render({ id: 5, kind: 'link', title: 'l', link: { url: 'https://example.com/x' } }));
     expect(t.querySelector('.at-link iframe')).toBeTruthy();
-    expect(t.querySelector('.at-fallback')).toBeFalsy();
+    expect(t.querySelector('.at-link .card')).toBeTruthy();
   });
 
-  it('denylisted link → fallback card, no iframe', () => {
+  it('denylisted link → blank stage (no iframe), card alongside', () => {
     let t;
     ({ target: t, app } = render({ id: 6, kind: 'link', title: 'l', link: { url: 'https://www.nytimes.com/x' } }));
-    expect(t.querySelector('.at-fallback')).toBeTruthy();
     expect(t.querySelector('.at-link iframe')).toBeFalsy();
+    expect(t.querySelector('.at-link .card')).toBeTruthy();
   });
 });

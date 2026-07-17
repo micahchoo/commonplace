@@ -5,14 +5,8 @@
   import AttachmentBlock from './renderers/AttachmentBlock.svelte';
   import LinkBlock from './renderers/LinkBlock.svelte';
   import FallbackCard from './renderers/FallbackCard.svelte';
-  import { isDenylisted } from '../lib/denylist.js';
 
   let { block } = $props();
-
-  // Links are framed inline by default; only sites KNOWN to refuse framing (the
-  // denylist) fall back to a preview card, since a static app can't detect a framing
-  // refusal at runtime. The card renders as normal content on the clean stage.
-  const denyLink = $derived(block?.kind === 'link' && isDenylisted(block.link?.url));
 </script>
 
 <div class="at-stage">
@@ -27,11 +21,7 @@
       {:else if block.kind === 'attachment'}
         <AttachmentBlock {block} />
       {:else if block.kind === 'link'}
-        {#if denyLink}
-          <FallbackCard {block} />
-        {:else}
-          <LinkBlock {block} />
-        {/if}
+        <LinkBlock {block} />
       {:else}
         <FallbackCard {block} />
       {/if}
