@@ -6,7 +6,8 @@ tree is *shaped* and *navigated*: how config channels become sections, how block
 and nested channels form one uniform drill tree, and how the breadcrumb,
 connections strip, landing, and hash routing behave. It is the map that
 [`src/lib/nav.svelte.js`](../../src/lib/nav.svelte.js),
-[`src/lib/router.js`](../../src/lib/router.js), and
+[`src/lib/router.js`](../../src/lib/router.js),
+[`src/lib/reader.svelte.js`](../../src/lib/reader.svelte.js), and
 [`src/lib/model.js`](../../src/lib/model.js) implement — read it before touching
 them. Commonplace is a rebuild of [Binder](https://github.com/clementvalla/binder);
 the multi-channel menu is Binder heritage, now with each menu entry an Are.na
@@ -170,10 +171,16 @@ Are.na doesn't break a shared link:
 
 `encodePath(slugs, blockId)` joins the `DEPTH_CAP`-capped, URL-encoded slugs and
 appends `b:<id>` when a block is open; `decodeHash(hash)` returns
-`{ slugs, blockId }`; `navigate(slugs, blockId)` writes the hash. The app resolves
-a decoded path by entering each slug in turn, then `openBlock(blockId)` if one is
-present or `landing()` for an empty tail. An empty hash lands on the site: it
-auto-enters the first section and calls `landing()`.
+`{ slugs, blockId }`; `navigate(slugs, blockId)` writes the hash. `Reader.sync()`
+resolves a decoded path by entering each slug in turn, then `openBlockDeep(blockId)`
+if one is present or `landing()` for an empty tail. An empty hash lands on the site:
+it auto-enters the first section and calls `landing()`.
+
+> Naming drift since this was written: the resolution lived in the app shell and
+> called `openBlock`. It is `Reader.sync()` calling `Reader.landOnBoot()` and
+> `Nav.openBlockDeep()` now — the `Reader` is the only module that reads or writes
+> the hash, and `openBlockDeep` pages forward for a block outside the loaded window
+> rather than leaving the stage blank. The model above is unchanged.
 
 ## Fetch and caching
 

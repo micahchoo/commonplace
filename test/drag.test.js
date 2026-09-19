@@ -72,6 +72,32 @@ describe('drag', () => {
     expect(node.style.left).toBe('0px'); // released; the post-up move is dropped
   });
 
+  it('clamps to the viewport so the handle cannot leave the screen', () => {
+    const { node, handle } = makeNode();
+    action = drag(node);
+    handle.dispatchEvent(evt('pointerdown', { pointerId: 1, clientX: 100, clientY: 100 }));
+    // drag hard up and left, past the origin — this used to strand the header off-screen
+    window.dispatchEvent(evt('pointermove', { pointerId: 1, clientX: -900, clientY: -900 }));
+    expect(node.style.top).toBe('0px'); // the header's top edge stays on screen
+    expect(parseFloat(node.style.left)).toBeGreaterThanOrEqual(24 - node.getBoundingClientRect().width);
+    // ...and just as far the other way
+    window.dispatchEvent(evt('pointermove', { pointerId: 1, clientX: 9000, clientY: 9000 }));
+    expect(parseFloat(node.style.left)).toBe(window.innerWidth - 24);
+    expect(parseFloat(node.style.top)).toBe(window.innerHeight - 24);
+  });
+
+  it('a resize into the mobile layout drops the inline position back to the stylesheet', () => {
+    const { node, handle } = makeNode();
+    action = drag(node);
+    handle.dispatchEvent(evt('pointerdown', { pointerId: 1, clientX: 100, clientY: 50 }));
+    window.dispatchEvent(evt('pointermove', { pointerId: 1, clientX: 130, clientY: 70 }));
+    expect(node.style.left).toBe('30px');
+    window.matchMedia = () => ({ matches: true }); // narrowed past the breakpoint
+    window.dispatchEvent(new Event('resize'));
+    expect(node.style.left).toBe(''); // inline styles beat the media query — so clear them
+    expect(node.style.top).toBe('');
+  });
+
   it('destroy() removes the listeners', () => {
     const { node, handle } = makeNode();
     action = drag(node);

@@ -29,3 +29,12 @@ build plan (`plans/`). Health & surplus work is tracked as the wayfinder map `bi
 - **`DEPTH_CAP` is defined once, in `src/lib/router.js`, and imported everywhere it's needed
   (nav, router).** Never redeclare it — the drill-depth cap and the hash-encoding cap must not
   drift. See `.agents/docs/ISSUES.md#I8`.
+- **The mobile breakpoint is `MOBILE_QUERY` in `src/lib/viewport.js`.** Scripts import it —
+  never re-write `'(max-width: 768px)'` in JS. The `@media` blocks must repeat the literal
+  (CSS cannot import), so changing the number means changing those too; `global.css` says which.
+- **`src/lib/reader.svelte.js` is the only module that reads or writes `location.hash`.**
+  `Nav` owns the drill tree and knows nothing about the URL; `router.js` encodes and decodes
+  and knows nothing about the tree; the `Reader` joins them. A new reader move (a control, a
+  key, a gesture) is a method there, not navigation logic in a component — components map an
+  event to one `Reader` call and decide nothing. This is what makes the moves testable without
+  mounting the app: see `test/reader.test.js`.

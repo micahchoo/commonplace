@@ -65,6 +65,17 @@ export function deriveTitle(b) {
   return 'Untitled';
 }
 
+/**
+ * The index label for a block's kind — `>ch 8` for a drill node, `[image]` otherwise.
+ * Both sheets that list blocks render it (the numbered index and the contact grid),
+ * so the format lives here rather than being written out once per surface.
+ */
+export function kindTag(b) {
+  if (!b) return '';
+  if (b.kind === 'channel') return `>ch ${b.count ?? ''}`.trim();
+  return b.kind ? `[${b.kind}]` : '';
+}
+
 /** Discriminate on V3 `type`; an are.na-channel Link normalizes to a drill node. */
 export function blockKind(b) {
   switch (b?.type) {

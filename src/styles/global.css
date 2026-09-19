@@ -57,6 +57,9 @@ body {
   max-height: 55vh;
 }
 
+/* 768px is the mobile breakpoint. CSS cannot import it, so every `@media` block in
+   this project repeats the literal; the scripts read it from `src/lib/viewport.js`
+   (MOBILE_QUERY). Change one, change all of them. */
 @media (max-width: 768px) {
   .at-panel {
     left: 2px;

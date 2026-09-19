@@ -8,10 +8,10 @@
   import ConnectionsStrip from './ConnectionsStrip.svelte';
   import ChannelOpener from './ChannelOpener.svelte';
 
-  let { nav, gridMode = false, gridAvailable = false, ongrid, onselect, onnavigate, onjump, onloadmore, onopen } = $props();
-
-  // Collapsed by default on mobile; open on desktop.
-  let open = $state(typeof window === 'undefined' || !window.matchMedia?.('(max-width: 768px)').matches);
+  // `open` is bindable: the shell collapses the menu on mobile when a block is
+  // picked, because the expanded panel covers the whole screen there — it hid the
+  // very block the tap had just opened.
+  let { nav, gridMode = false, gridAvailable = false, open = $bindable(true), ongrid, onselect, onnavigate, onjump, onloadmore, onopen } = $props();
 
   // Publish the collapsed-bar height as --at-bar-h so the stage can center content in
   // the space *below* the mobile pinned bar instead of the full viewport. Measured
@@ -36,6 +36,7 @@
       <img class="logo" src={nav.config.logo} alt="" />
     {/if}
     <span class="title">{nav.title || 'Commonplace'}</span>
+    {#if nav.loading}<span class="busy" role="status" aria-label="Loading">…</span>{/if}
     <span class="hfill"></span>
     {#if gridAvailable}
       <button
@@ -65,7 +66,9 @@
       <NavList blocks={nav.blocks} activeId={nav.active?.id} {onselect} />
 
       {#if nav.hasMore}
-        <button class="more" type="button" onclick={onloadmore}>load more…</button>
+        <button class="more" type="button" onclick={onloadmore} disabled={nav.loadingMore}>
+          {nav.loadingMore ? 'loading…' : 'load more…'}
+        </button>
       {/if}
 
       <ConnectionsStrip connections={nav.connections} {onjump} />
@@ -86,6 +89,23 @@
   }
   .title {
     color: var(--an-accent);
+  }
+  /* `nav.loading` was written and never read: entering a channel over a slow link
+     painted no cue at all, and the stale block stayed on the stage. */
+  .busy {
+    flex: 0 0 auto;
+    opacity: 0.7;
+    animation: at-blink 1s steps(2, end) infinite;
+  }
+  @keyframes at-blink {
+    50% {
+      opacity: 0.15;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .busy {
+      animation: none;
+    }
   }
   .logo {
     height: 20px;
@@ -163,6 +183,11 @@
   }
   .more:hover {
     color: var(--an-accent);
+  }
+  .more:disabled {
+    cursor: default;
+    opacity: 0.6;
+    text-decoration: none;
   }
 
   @media (max-width: 768px) {

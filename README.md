@@ -25,6 +25,8 @@ book of collected quotes and clippings, which is essentially what an Are.na chan
 - **Contact-sheet grid view** — see a whole channel as a wall of thumbnails; click one to open it.
 - **Deep-linkable** — the URL hash encodes the drill path and the open block, so every view is
   shareable and the back button behaves.
+- **Keyboard-first reading** — arrow through a channel, flip to the grid, back out a level,
+  without touching the menu.
 - **Signature draggable UI** — the floating monospace box with its yellow/red double shadow;
   collapses to a pinned bar on mobile.
 - **100% static & self-hostable** — deploy the `dist/` folder anywhere. No server, no auth
@@ -63,11 +65,20 @@ are no auth tokens: a static deploy can't keep a secret.
   sideways jumps to related channels.
 - **Selecting a block** renders it in the full-viewport pane by type: `<img>` for images,
   sanitized HTML for text, a sandboxed embed for media, an inline viewer / download for PDFs,
-  and an iframe for links.
-- The **home view** and the per-channel **grid toggle** show a contact sheet of thumbnails —
-  click any tile to open that block.
+  and an iframe for links. An **are.na ↗** mark in the corner opens the block's permalink.
+- The **home view** shows a contact sheet of the channels' thumbnails. The per-channel **grid
+  toggle** shows the whole channel — a thumbnail per image, a typographic tile for everything
+  else — with the open block outlined. Click any tile to open it.
 - Some sites refuse to be framed (NYT, X, GitHub, …). Those show a preview card with an
   **"open in new tab ▸"** link instead of a blank frame; every link view keeps that escape hatch.
+
+Reading a channel needs no pointer:
+
+| Key | Does |
+|---|---|
+| `←` `→` (or `k` `j`) | Previous / next block; pulls the next page at the end of a long channel |
+| `g` | Toggle the contact-sheet grid |
+| `Esc` | Leave the grid, or back out one level |
 
 ## Configuration
 

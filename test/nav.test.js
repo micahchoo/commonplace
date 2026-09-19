@@ -93,6 +93,64 @@ describe('Nav', () => {
     expect(n.hasMore).toBe(false);
   });
 
+  it('loadMore is guarded: a second call while one is in flight is dropped', async () => {
+    const arena = makeArena();
+    let calls = 0;
+    const inner = arena.getContentsPage;
+    arena.getContentsPage = async (slug, page) => {
+      calls += 1;
+      await new Promise((r) => setTimeout(r, 5));
+      return inner(slug, page);
+    };
+    const n = nav(arena);
+    await n.enter('a');
+    calls = 0;
+    await Promise.all([n.loadMore(), n.loadMore()]); // a double-click on "load more…"
+    expect(calls).toBe(1);
+    expect(n.blocks).toHaveLength(4); // page 2 appended once, not twice
+  });
+
+  it('a failed page surfaces an error and is retried, not skipped', async () => {
+    const arena = makeArena();
+    const inner = arena.getContentsPage;
+    let fail = true;
+    arena.getContentsPage = async (slug, page) => {
+      if (page === 2 && fail) {
+        const e = new Error('rl');
+        e.rateLimited = true;
+        throw e;
+      }
+      return inner(slug, page);
+    };
+    const n = nav(arena);
+    await n.enter('a');
+    await n.loadMore(); // 429 — no unhandled rejection, and the counter holds
+    expect(n.error).toMatch(/slow down/i);
+    expect(n.blocks).toHaveLength(3);
+    fail = false;
+    await n.loadMore(); // the same page is retried, not jumped over
+    expect(n.blocks).toHaveLength(4);
+    expect(n.error).toBeNull();
+  });
+
+  it('openBlockDeep pages forward to a block outside the loaded window', async () => {
+    const n = nav(makeArena());
+    await n.enter('a');
+    expect(n.blocks.find((b) => b.id === 13)).toBeUndefined(); // page 2 is not loaded
+    const opened = await n.openBlockDeep(13);
+    expect(opened?.id).toBe(13);
+    expect(n.active?.id).toBe(13);
+  });
+
+  it('openBlockDeep returns null for an unknown id and for a drill node', async () => {
+    const n = nav(makeArena());
+    await n.enter('a');
+    expect(await n.openBlockDeep(999)).toBeNull(); // exhausts the pages, never spins
+    expect(n.active).toBeNull();
+    expect(await n.openBlockDeep(12)).toBeNull(); // a Channel entry is not stage content
+    expect(n.active).toBeNull();
+  });
+
   it('surfaces a rate-limited error distinctly from unreachable', async () => {
     const arena = makeArena();
     arena.getChannelMeta = async () => {

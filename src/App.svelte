@@ -1,14 +1,17 @@
 <script>
-  // The app shell. Hash is the single source of truth: user actions set the hash,
-  // hashchange drives nav. `nav` is a stable instance — do NOT wrap it in $state
+  // The app shell: boot the config, wire the surfaces to the Reader's moves, render.
+  // It holds no navigation logic — the hash is the single source of truth and the
+  // Reader is the only thing that reads or writes it (src/lib/reader.svelte.js).
+  // `nav` and `reader` are stable instances — do NOT wrap them in $state
   // (reassigning a reactive class instance severs its class-field reactivity).
   import { onMount } from 'svelte';
   import { resolveConfig } from './lib/config.js';
   import { applyTheme } from './lib/theme.js';
   import { Nav } from './lib/nav.svelte.js';
+  import { Reader } from './lib/reader.svelte.js';
   import { arena } from './lib/arena.js';
   import { collectThumbnails } from './lib/covers.js';
-  import { decodeHash, encodePath, navigate } from './lib/router.js';
+  import { isMobile } from './lib/viewport.js';
   import Panel from './components/Panel.svelte';
   import Stage from './components/Stage.svelte';
   import Cover from './components/Cover.svelte';
@@ -16,61 +19,69 @@
   import EmptyState from './components/EmptyState.svelte';
 
   const nav = new Nav(); // uses the shared `arena` singleton by default
+  const reader = new Reader(nav);
   let booted = $state(false);
   let coverThumbs = $state([]); // root-cover contact sheet
-  let gridMode = $state(false); // in-channel grid (board) view toggle
 
-  const pathSlugs = () => nav.path.map((n) => n.slug);
-  const sameArr = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
-
-  // The loaded blocks of the current channel that carry an image, as grid thumbs.
-  const channelThumbs = $derived(
-    nav.atRoot
-      ? []
-      : (nav.blocks || [])
-          .filter((b) => b.image?.thumb || b.image?.src)
-          .map((b) => ({
-            id: b.id,
-            slug: pathSlugs().at(-1) || '',
-            thumb: b.image.thumb || b.image.src,
-            title: b.title,
-            blurhash: b.image.blurhash,
-            ratio: b.image.aspectRatio,
-          })),
-  );
-  const gridAvailable = $derived(!nav.atRoot && channelThumbs.length > 0);
+  // Below the breakpoint the menu is a full-width bar rather than a floating box:
+  // it starts collapsed there and closes again on a pick.
+  let menuOpen = $state(!isMobile());
 
   function select(b) {
-    if (b.kind === 'channel') navigate([...pathSlugs(), b.channelSlug]);
-    else {
-      gridMode = false; // picking a specific block drops into its single view
-      navigate(pathSlugs(), b.id);
+    // A block fills the screen behind the menu; a drill just changes the index, so
+    // only the first of the two needs the mobile menu out of the way.
+    if (b?.kind !== 'channel' && isMobile()) menuOpen = false;
+    reader.select(b);
+  }
+
+  /**
+   * Key bindings, and nothing else — every branch is one call to a reader move.
+   * ←/→ (and k/j) page through the channel, g toggles the contact sheet, Escape
+   * backs out. Up/Down stay free so a long text block can still be scrolled.
+   */
+  function onKeydown(e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))
+      return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'j':
+        e.preventDefault();
+        reader.step(1);
+        break;
+      case 'ArrowLeft':
+      case 'k':
+        e.preventDefault();
+        reader.step(-1);
+        break;
+      case 'g':
+        e.preventDefault();
+        reader.toggleGrid();
+        break;
+      case 'Escape':
+        reader.escape();
+        break;
     }
   }
 
-  // Open an Are.na channel pasted at runtime: add it as a session section (so it also
-  // shows at root) and navigate into it. Warm its thumbnails for the cover too.
-  function openChannel(slug) {
-    if (!slug) return;
-    if (!nav.config.channels.includes(slug)) {
-      nav.config = { ...nav.config, channels: [...nav.config.channels, slug] };
-      collectThumbnails(arena, nav.config.channels).then((t) => (coverThumbs = t));
-    }
-    navigate([slug]);
-  }
+  // Warm the root cover whenever the configured channels change — at boot, and
+  // again when a pasted channel joins them. Reuses arena's page cache, so it also
+  // warms channel entry; failures degrade to the typographic cover.
+  $effect(() => {
+    const channels = nav.config.channels;
+    if (!channels.length) return;
+    collectThumbnails(arena, channels).then((t) => (coverThumbs = t));
+  });
 
-  // The sole place nav mutates from the URL: reconcile nav to the hash.
-  async function sync() {
-    const { slugs, blockId } = decodeHash(window.location.hash);
-    if (!sameArr(pathSlugs(), slugs)) {
-      gridMode = false; // board view is per-channel — don't persist it across a drill/jump
-      await nav.loadRoot();
-      for (const s of slugs) await nav.enter(s);
-    }
-    if (blockId != null) nav.openBlock(blockId);
-    else if (!nav.atRoot) nav.landing();
-    else nav.active = null;
-  }
+  // Per-view document title: every deep link used to produce the same history entry,
+  // the same bookmark and the same tab, whatever it pointed at.
+  $effect(() => {
+    if (!booted) return;
+    const parts = [nav.active?.title, nav.atRoot ? null : nav.title, nav.config.title || 'Commonplace'];
+    document.title = [...new Set(parts.filter(Boolean))].join(' — ');
+  });
 
   onMount(async () => {
     nav.config = await resolveConfig(window.location.search);
@@ -78,25 +89,17 @@
     document.title = nav.config.title || 'Commonplace';
     await nav.loadRoot();
 
-    // Warm a thumbnail contact sheet for the root cover. Reuses arena's page cache,
-    // so it also warms channel entry; failures degrade to the typographic cover.
-    collectThumbnails(arena, nav.config.channels).then((t) => (coverThumbs = t));
-
-    // Initial empty hash: a single section auto-enters (no point covering one item);
-    // with several, stay at root so the home Cover shows as a section index. Deep-link
-    // hashes are always honored. Reflected in the URL so state and hash agree. (ISSUES I6)
-    const { slugs } = decodeHash(window.location.hash);
-    if (!slugs.length && nav.sections.length === 1 && !nav.sections[0].dead) {
-      history.replaceState(null, '', encodePath([nav.sections[0].channelSlug]));
-    }
-    await sync();
+    reader.landOnBoot();
+    await reader.sync();
     booted = true;
 
-    window.addEventListener('hashchange', sync);
+    window.addEventListener('hashchange', () => reader.sync());
   });
 </script>
 
-<Stage block={nav.active} />
+<svelte:window onkeydown={onKeydown} />
+
+<Stage block={nav.active} sourceVisible={!reader.gridMode} />
 
 {#if booted && nav.config.channels.length}
   {#if nav.atRoot && !nav.active}
@@ -104,33 +107,28 @@
       title={nav.title}
       about={nav.about}
       thumbs={coverThumbs}
-      onpick={(t) => navigate([t.slug], t.id)}
+      onpick={(t) => reader.openFromCover(t)}
     />
-  {:else if gridMode && gridAvailable}
-    <ThumbGrid
-      thumbs={channelThumbs}
-      onpick={(t) => {
-        gridMode = false;
-        navigate(pathSlugs(), t.id);
-      }}
-    />
+  {:else if reader.gridMode && reader.gridAvailable}
+    <ThumbGrid thumbs={reader.cells} activeId={nav.active?.id} onpick={select} />
   {/if}
 {/if}
 
 {#if !booted}
   <div class="at-panel at-skeleton"><p>Loading…</p></div>
 {:else if !nav.config.channels.length}
-  <EmptyState onopen={openChannel} />
+  <EmptyState onopen={(slug) => reader.openChannel(slug)} />
 {:else}
   <Panel
     {nav}
-    {gridMode}
-    {gridAvailable}
-    ongrid={() => (gridMode = !gridMode)}
+    gridMode={reader.gridMode}
+    gridAvailable={reader.gridAvailable}
+    bind:open={menuOpen}
+    ongrid={() => reader.toggleGrid()}
     onselect={select}
-    onnavigate={(depth) => navigate(pathSlugs().slice(0, depth))}
-    onjump={(slug) => navigate([slug])}
+    onnavigate={(depth) => reader.goToDepth(depth)}
+    onjump={(slug) => reader.goToChannel(slug)}
     onloadmore={() => nav.loadMore()}
-    onopen={openChannel}
+    onopen={(slug) => reader.openChannel(slug)}
   />
 {/if}

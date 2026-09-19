@@ -2,6 +2,7 @@
   // are.na-hosted (framing-safe). PDF inlines on desktop; iOS Safari can't scroll an
   // iframed PDF, so mobile degrades to a download card. video/audio render natively.
   import FallbackCard from './FallbackCard.svelte';
+  import { watchMobile } from '../../lib/viewport.js';
   let { block } = $props();
 
   const a = $derived(block.attachment || {});
@@ -11,14 +12,7 @@
   const isAudio = $derived(type.startsWith('audio/'));
 
   let isMobile = $state(false);
-  $effect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mq = window.matchMedia('(max-width: 768px)');
-    isMobile = mq.matches;
-    const on = () => (isMobile = mq.matches);
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  });
+  $effect(() => watchMobile((m) => (isMobile = m)));
 </script>
 
 {#if isPdf && !isMobile}

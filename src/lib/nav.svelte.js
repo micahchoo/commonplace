@@ -23,6 +23,7 @@ export class Nav {
   loading = $state(false);
   error = $state(null);
   hasMore = $state(false);
+  loadingMore = $state(false); // a page-2+ fetch is in flight
   config = $state({ channels: [] });
 
   #arena;
@@ -130,20 +131,56 @@ export class Nav {
     await this.#loadConnections(target.slug);
   }
 
-  /** Lazy pagination — page 1 is free; more on demand. */
+  /**
+   * Lazy pagination — page 1 is free; more on demand. Guarded three ways: a second
+   * click while a page is in flight spent a duplicate request against the 30/min
+   * budget; an unguarded await turned a 429 into an unhandled rejection under a
+   * button that then did nothing; and advancing `#page` before the fetch skipped a
+   * failed page forever. The counter now moves only on success.
+   */
   async loadMore() {
-    if (!this.hasMore || this.atRoot) return;
+    if (!this.hasMore || this.atRoot || this.loadingMore) return;
+    this.loadingMore = true;
     const slug = this.path[this.path.length - 1].slug;
-    this.#page += 1;
-    const page = await this.#arena.getContentsPage(slug, this.#page);
-    this.blocks = [...this.blocks, ...page.blocks];
-    this.hasMore = page.hasMore;
+    const next = this.#page + 1;
+    try {
+      const page = await this.#arena.getContentsPage(slug, next);
+      this.#page = next;
+      this.blocks = [...this.blocks, ...page.blocks];
+      this.hasMore = page.hasMore;
+      this.error = null;
+    } catch (e) {
+      this.error = e?.rateLimited
+        ? 'Rate limited — please slow down a moment.'
+        : 'Could not load more of this channel.';
+    } finally {
+      this.loadingMore = false;
+    }
   }
 
   openBlock(id) {
     const found = this.blocks.find((b) => b.id === id);
     if (found && found.kind !== 'channel') this.active = found;
     return found;
+  }
+
+  /**
+   * Open a block by id, paging forward when it sits outside the loaded window.
+   * A deep link names a block by id, but a cold load holds page 1 only (100 blocks),
+   * so a shared link into a long channel matched nothing and left the stage blank
+   * white with no message. Returns the opened block, or null when the id is absent
+   * from the channel or names a drill node, which the stage cannot render.
+   */
+  async openBlockDeep(id) {
+    this.active = null;
+    let found = this.openBlock(id);
+    while (!found && this.hasMore && !this.atRoot) {
+      const before = this.blocks.length;
+      await this.loadMore();
+      if (this.blocks.length === before) break; // the page failed — stop, never spin
+      found = this.openBlock(id);
+    }
+    return this.active; // openBlock refuses a drill node, so this stays null for one
   }
 
   /**

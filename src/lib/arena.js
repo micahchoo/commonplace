@@ -88,7 +88,9 @@ export function createArena({
     return result;
   }
 
-  return { getChannelMeta, getContentsPage, getConnections, metaCache, pageCache, connCache };
+  // The three caches stay private: no caller and no test reads them, so exposing
+  // them only widened what a reader of this seam has to take in.
+  return { getChannelMeta, getContentsPage, getConnections };
 }
 
 /** Default app-wide instance (real fetch). */

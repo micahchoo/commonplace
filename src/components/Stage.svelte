@@ -6,7 +6,14 @@
   import LinkBlock from './renderers/LinkBlock.svelte';
   import FallbackCard from './renderers/FallbackCard.svelte';
 
-  let { block } = $props();
+  let { block, sourceVisible = true } = $props();
+
+  // Every Are.na block has a stable permalink at /block/<id>. Links and attachments
+  // carry their own escape hatch on the card, but an image or a text block had no
+  // route off the stage at all — no attribution, and no way to the full-size original.
+  // Rendered outside .at-stage: that layer is z-index 1 and makes its own stacking
+  // context, so a child of it can never sit above the grid at z-index 2.
+  const source = $derived(block?.id ? `https://www.are.na/block/${block.id}` : '');
 </script>
 
 <div class="at-stage">
@@ -29,6 +36,10 @@
   </div>
 </div>
 
+{#if source && sourceVisible}
+  <a class="at-source" href={source} target="_blank" rel="noopener noreferrer">are.na ↗</a>
+{/if}
+
 <style>
   .at-stage {
     position: fixed;
@@ -39,6 +50,28 @@
   .content-layer {
     position: absolute;
     inset: 0;
+  }
+
+  /* The source link rides above the stage and the contact sheet, below the menu (10). */
+  .at-source {
+    position: fixed;
+    right: 10px;
+    bottom: 10px;
+    z-index: 3;
+    padding: 2px 7px;
+    background: var(--an-panel-bg);
+    border: 1px solid var(--an-border);
+    box-shadow: var(--an-shadow-1) 2px 2px 0;
+    font: 12px/1.5 var(--an-font);
+    color: var(--an-text);
+    text-decoration: none;
+    opacity: 0.65;
+  }
+  .at-source:hover,
+  .at-source:focus-visible {
+    opacity: 1;
+    color: var(--an-accent);
+    box-shadow: var(--an-shadow-1) 2px 2px 0, 4px 4px 0 var(--an-shadow-2);
   }
 
   /* On mobile the panel is a pinned top bar; center content in the space below it
